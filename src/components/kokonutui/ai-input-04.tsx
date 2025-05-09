@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 
-export default function AIInput_04() {
+export default function AIInput_04({ onSubmit }: { onSubmit?: (query: string) => void }) {
     const [value, setValue] = useState("");
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 52,
@@ -16,6 +16,7 @@ export default function AIInput_04() {
     const [showSearch, setShowSearch] = useState(true);
 
     const handleSubmit = () => {
+        if (onSubmit) onSubmit(value);
         setValue("");
         adjustHeight(true);
     };

@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X 
 import Image from 'next/image';
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
 import { Input } from "@/components/ui/input";
-import { House } from 'lucide-react';
+import { House, Stethoscope, ShieldCheck, CalendarDays } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 
 type Tab = "Home" | "Patient Records" | "Appointments" | "Prescriptions" | "AI Assistant";
@@ -51,7 +51,7 @@ export default function BrowserShell() {
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-auto p-4 relative">
           <div key={activeTab} className="h-full animate__animated animate__fadeIn">
-            {activeTab === "Home" && <HomeContent />}
+            {activeTab === "Home" && <HomeContent setActiveTab={setActiveTab} />}
             {activeTab === "Patient Records" && <PatientRecordsContent />}
             {activeTab === "Appointments" && <AppointmentsContent />}
             {activeTab === "Prescriptions" && <PrescriptionsContent />}
@@ -92,8 +92,20 @@ export default function BrowserShell() {
   );
 }
 
-function HomeContent() {
+function HomeContent({ setActiveTab }: { setActiveTab: React.Dispatch<React.SetStateAction<Tab>> }) {
   const [loading, setLoading] = useState(true);
+  const [simulationMessages, setSimulationMessages] = useState<{ sender: string; text: string }[]>([]);
+
+  const handleSearch = (query: string) => {
+    const msgs = [
+      { sender: 'User', text: query },
+      { sender: 'ErachI', text: `Searching for "${query}"...` },
+      { sender: 'ErachI', text: `Here are the top providers for "${query}": Provider A, Provider B, Provider C` },
+    ];
+    setSimulationMessages(msgs);
+    setTimeout(() => setActiveTab("Patient Records"), (msgs.length + 1) * 1000);
+  };
+
   useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
   if (loading) {
     return (
@@ -109,17 +121,19 @@ function HomeContent() {
       <Image src="/helo.jpeg" alt="Background" fill className="object-cover object-center" />
       <div className="absolute inset-0  bg-opacity-50"></div>
       <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 p-4">
-        <AIInput_04 />
-        <div className="flex flex-wrap justify-center gap-2">
-          {['Healthcare', 'Insurance', 'Medical Appointment Book'].map((platform) => (
-            <button
-              key={platform}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-full bg-opacity-90 hover:bg-opacity-100 transition"
-            >
-              {platform}
-            </button>
-          ))}
+        <AIInput_04 onSubmit={handleSearch} />
+        <div className="flex flex-wrap justify-center gap-6">
+          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
+            <Stethoscope size={24} />
+          </button>
+          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
+            <ShieldCheck size={24} />
+          </button>
+          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
+            <CalendarDays size={24} />
+          </button>
         </div>
+        {simulationMessages.length > 0 && <AgenticSimulation messages={simulationMessages} />}
       </div>
     </div>
   );
@@ -247,6 +261,38 @@ function AIAssistantContent() {
           Click on the &apos;Patient Records&apos; tab and then &apos;Add Record&apos;.
         </div>
       </div>
+    </div>
+  );
+}
+
+function AgenticSimulation({ messages }: { messages: { sender: string; text: string }[] }) {
+  const [displayed, setDisplayed] = useState<{ sender: string; text: string }[]>([]);
+  useEffect(() => {
+    setDisplayed([]);
+    const timers: NodeJS.Timeout[] = [];
+    messages.forEach((msg, idx) => {
+      const timer = setTimeout(() => setDisplayed(prev => [...prev, msg]), (idx + 1) * 1000);
+      timers.push(timer);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [messages]);
+  return (
+    <div className="mt-6 p-4 bg-card rounded-lg shadow-md max-w-md mx-auto">
+      {displayed.map((msg, idx) => (
+        <div key={idx} className={msg.sender === 'User' ? 'flex justify-end' : 'flex justify-start'}>
+          <div className={cn(
+            "px-3 py-1 rounded-lg max-w-xs",
+            msg.sender === 'User' ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+          )}>
+            {msg.text}
+          </div>
+        </div>
+      ))}
+      {displayed.length < messages.length && (
+        <div className="mt-2 italic text-sm text-muted-foreground">
+          {messages[displayed.length].sender} is typing...
+        </div>
+      )}
     </div>
   );
 } 

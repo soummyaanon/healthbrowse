@@ -20,14 +20,14 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
   return (
     <div className="relative flex-shrink-0 h-full">
       <aside className={cn(
-        "border-l border-border bg-card transition-all duration-300 overflow-hidden flex flex-col h-full",
+        "border border-border bg-card shadow-lg rounded-md transition-all duration-300 overflow-hidden flex flex-col h-full",
         open ? "w-64" : "w-0"
       )}>
         {open && (
           <>
             <div className="flex items-center justify-between px-2 py-2 border-b border-border">
               <span className="font-semibold">Menu</span>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="icon" className="border border-border rounded-full shadow-md bg-card" onClick={() => setOpen(false)}>
                 <ChevronRight />
               </Button>
             </div>
@@ -53,7 +53,7 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-2 left-0 transform -translate-x-full bg-card"
+        className="absolute top-2 left-0 transform -translate-x-full bg-card border border-border rounded-full shadow-md"
         onClick={() => setOpen(!open)}
       >
         {open ? <ChevronRight /> : <ChevronLeft />}
