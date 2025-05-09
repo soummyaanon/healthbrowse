@@ -2,19 +2,20 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Tab = "Home" | "Patient Records" | "Appointments" | "Prescriptions" | "AI Assistant";
+type Tab = "Home" | "Patient Records" | "Appointments" | "Prescriptions" | "AI Assistant" | "Insurance";
 
 interface SidebarProps {
   tabs: Tab[];
   activeTab: Tab;
   setActiveTab: (tab: Tab) => void;
   initialOpen?: boolean;
+  agentWorking?: boolean;
 }
 
-export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = true }: SidebarProps) {
+export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = true, agentWorking = false }: SidebarProps) {
   const [open, setOpen] = useState(initialOpen);
 
   return (
@@ -36,17 +37,34 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
                 <button
                   key={tab}
                   className={cn(
-                    'text-left px-3 py-2 rounded-md transition',
+                    'text-left px-3 py-2 rounded-md transition flex justify-between items-center',
                     activeTab === tab
                       ? 'bg-accent text-accent-foreground'
                       : 'hover:bg-muted hover:bg-opacity-20'
                   )}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab}
+                  <span>{tab}</span>
+                  {tab === "Insurance" && agentWorking && (
+                    <div className="flex items-center space-x-1">
+                      <Bot size={16} className="text-blue-500 animate-pulse" />
+                      <div className="relative w-6 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="absolute inset-0 bg-blue-500 animate-[leftToRight_2s_ease-in-out_infinite]"></div>
+                      </div>
+                    </div>
+                  )}
                 </button>
               ))}
             </nav>
+            
+            {agentWorking && (
+              <div className="border-t border-border p-3">
+                <div className="bg-blue-50 text-blue-700 rounded p-2 text-xs flex items-center space-x-2 animate-pulse">
+                  <Bot size={16} />
+                  <span>AI Agent working...</span>
+                </div>
+              </div>
+            )}
           </>
         )}
       </aside>
@@ -58,6 +76,12 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
       >
         {open ? <ChevronRight /> : <ChevronLeft />}
       </Button>
+      
+      {!open && agentWorking && (
+        <div className="absolute top-14 left-0 transform -translate-x-full bg-blue-500 text-white p-2 rounded-l-md shadow-md animate-pulse">
+          <Bot size={16} />
+        </div>
+      )}
     </div>
   );
 } 
