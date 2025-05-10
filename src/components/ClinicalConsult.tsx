@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, BookOpen, Link2 } from "lucide-react";
+import { Loader2, Search, BookOpen, Link2, ChevronDown } from "lucide-react";
 
 // Define categories and mock Q&A data
 const CATEGORIES = [
+  "Drug Side Effects",
+  "Drug Interactions",
+  "Guidelines",
+  "Medical Questions",
   "Ask for Evidence",
   "Ask in a Language Other Than English",
   "Construct a Workup",
@@ -12,13 +16,10 @@ const CATEGORIES = [
   "Research a Topic",
   "Ask about Treatment Alternatives",
   "Ask about Treatment Options",
-  "Ask about Drug Interactions",
   "Write an Exam Question",
-  "Ask about Drug Side Effects",
   "Ask for a Quick Fact",
   "Ask a Tough Question",
   "Ask about Drug Dosing",
-  "Ask about Guidelines",
   "Prepare For MOC Exams",
   "Ask about Primary Evidence",
   "Ask a Pop-Science Question"
@@ -37,7 +38,7 @@ const QA_MAP: Record<string, { answer: string; links: { title: string; url: stri
       { title: "NICE: Hypertension in Adults", url: "https://www.nice.org.uk/guidance/ng136" }
     ]
   },
-  "Ask about Drug Interactions": {
+  "Drug Interactions": {
     answer:
       "Simvastatin and clarithromycin should not be co-administered due to risk of severe myopathy. Always check for CYP3A4 interactions. See the following resources for more details.",
     links: [
@@ -48,7 +49,7 @@ const QA_MAP: Record<string, { answer: string; links: { title: string; url: stri
       { title: "PubMed: Statin Interactions", url: "https://pubmed.ncbi.nlm.nih.gov/?term=statin+drug+interactions" }
     ]
   },
-  "Ask about Guidelines": {
+  "Guidelines": {
     answer:
       "For diabetes management, the ADA 2024 Standards of Care provide comprehensive, evidence-based guidelines. See the following links for the full guideline and summaries.",
     links: [
@@ -80,9 +81,34 @@ const QA_MAP: Record<string, { answer: string; links: { title: string; url: stri
       { title: "PubMed: COVID-19 Vaccine", url: "https://pubmed.ncbi.nlm.nih.gov/?term=covid-19+vaccine+efficacy" },
       { title: "JAMA: COVID-19 Vaccine", url: "https://jamanetwork.com/journals/jama/fullarticle/2777059" }
     ]
+  },
+  "Drug Side Effects": {
+    answer:
+      "Common side effects of SSRIs include nausea, headache, and sexual dysfunction. Serious side effects may include increased suicidal thoughts in young adults and serotonin syndrome.",
+    links: [
+      { title: "FDA: SSRI Drug Information", url: "https://www.fda.gov/drugs/information-drug-class/selective-serotonin-reuptake-inhibitors-ssris-information" },
+      { title: "Mayo Clinic: Antidepressants", url: "https://www.mayoclinic.org/diseases-conditions/depression/in-depth/ssris/art-20044825" },
+      { title: "UpToDate: SSRI Side Effects", url: "https://www.uptodate.com/contents/selective-serotonin-reuptake-inhibitors-pharmacology-administration-and-side-effects" },
+      { title: "PubMed: SSRI Adverse Effects", url: "https://pubmed.ncbi.nlm.nih.gov/?term=ssri+adverse+effects" },
+      { title: "MedlinePlus: Antidepressants", url: "https://medlineplus.gov/antidepressants.html" }
+    ]
+  },
+  "Medical Questions": {
+    answer:
+      "The diagnosis of acute appendicitis typically includes right lower quadrant pain, nausea/vomiting, fever, and elevated WBC count. Imaging studies can confirm the diagnosis.",
+    links: [
+      { title: "UpToDate: Acute Appendicitis", url: "https://www.uptodate.com/contents/acute-appendicitis-in-adults-clinical-manifestations-and-differential-diagnosis" },
+      { title: "American Family Physician", url: "https://www.aafp.org/afp/2018/0701/p25.html" },
+      { title: "PubMed: Appendicitis Diagnosis", url: "https://pubmed.ncbi.nlm.nih.gov/?term=acute+appendicitis+diagnosis" },
+      { title: "Medscape: Appendicitis", url: "https://emedicine.medscape.com/article/773895-overview" },
+      { title: "JAMA: Appendicitis Review", url: "https://jamanetwork.com/journals/jama/fullarticle/2766672" }
+    ]
   }
   // Add more categories as needed
 };
+
+// Main categories for accordion
+const MAIN_CATEGORIES = ["Drug Side Effects", "Drug Interactions", "Guidelines", "Medical Questions"];
 
 function getAnswerAndLinks(query: string): { answer: string; links: { title: string; url: string }[] } {
   // Try to match category first
@@ -99,6 +125,7 @@ export default function ClinicalConsult() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ answer: string; links: { title: string; url: string }[] } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -118,10 +145,67 @@ export default function ClinicalConsult() {
     setTimeout(() => handleSubmit(), 100);
   };
 
+  const toggleAccordion = (category: string) => {
+    setExpandedAccordion(expandedAccordion === category ? null : category);
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-6 bg-card rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><BookOpen size={22} /> Clinical Knowledge Search</h2>
       <p className="text-muted-foreground mb-4">Ask a clinical question or select a category below. Answers are simulated for demo purposes and include referenced links.</p>
+      
+      {/* Accordion Section */}
+      <div className="mb-6 border rounded-lg overflow-hidden">
+        {MAIN_CATEGORIES.map((category) => (
+          <div key={category} className="border-b last:border-b-0">
+            <button 
+              onClick={() => toggleAccordion(category)}
+              className="w-full px-4 py-3 text-left flex justify-between items-center bg-muted/30 hover:bg-muted/50 transition-colors"
+            >
+              <span className="font-medium">{category}</span>
+              <ChevronDown 
+                size={18} 
+                className={`transform transition-transform ${expandedAccordion === category ? 'rotate-180' : ''}`} 
+              />
+            </button>
+            {expandedAccordion === category && (
+              <div className="px-4 py-3 bg-background">
+                {QA_MAP[category] && (
+                  <div className="space-y-2">
+                    <p className="text-sm">{QA_MAP[category].answer}</p>
+                    <div className="text-xs text-muted-foreground">
+                      <div className="font-medium mb-1">References:</div>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {QA_MAP[category].links.slice(0, 3).map((link, i) => (
+                          <li key={i}>
+                            <a 
+                              href={link.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {link.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleCategoryClick(category)}
+                        className="mt-2 text-xs"
+                      >
+                        View Full Details
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <Input
           value={input}

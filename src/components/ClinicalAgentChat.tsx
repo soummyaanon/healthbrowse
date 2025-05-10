@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import AIInput_04, { AIInput04Ref } from "@/components/kokonutui/ai-input-04";
 import { Loader2, Link2, Bot, StethoscopeIcon, ScrollText, Pill, Activity, Heart, BookOpen, SearchIcon, BarChart3, LineChart, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Drug side effects questions
 const DRUG_SIDE_EFFECT_QUESTIONS = [
@@ -603,6 +602,61 @@ function ClinicalAgentChat() {
     </div>
   );
 
+  // Card display for references and followups
+  const ResponseCardGroup = ({ title, icon, items, isLink = false, onClick }: {
+    title: string;
+    icon: React.ReactNode;
+    items: string[] | { title: string; url: string }[];
+    isLink?: boolean;
+    onClick?: (item: string) => void;
+  }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="border rounded-lg p-3 mb-3"
+    >
+      <h3 className="text-sm font-medium flex items-center gap-1.5 mb-2 text-blue-700">
+        {icon}
+        <span>{title}</span>
+      </h3>
+      <div className={isLink ? "grid grid-cols-1 md:grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>
+        {isLink ? (
+          // For reference links
+          (items as { title: string; url: string }[]).map((item, idx) => (
+            <motion.a
+              key={idx}
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 + idx * 0.05 }}
+              className="flex items-center gap-1 text-blue-600 hover:underline text-xs"
+            >
+              <Link2 size={12} className="flex-shrink-0" />
+              <span className="line-clamp-1">{item.title}</span>
+            </motion.a>
+          ))
+        ) : (
+          // For followup questions
+          (items as string[]).map((item, idx) => (
+            <motion.button
+              key={idx}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.1 + idx * 0.05 }}
+              className="px-3 py-1.5 text-xs rounded-full bg-white hover:bg-blue-50 text-blue-700 border border-blue-200"
+              onClick={() => onClick && onClick(item)}
+            >
+              {item}
+            </motion.button>
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+
   return (
     <div className="flex flex-col w-full h-full max-w-4xl mx-auto">
       {/* Header and input section */}
@@ -629,27 +683,27 @@ function ClinicalAgentChat() {
             onChange={setInputValue}
           />
           
-          {/* Quick suggestion buttons */}
-          <AnimatePresence>
-            {messages.length <= 1 && !lastQA && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.5 }}
-                className="flex flex-wrap gap-2 mt-3 justify-center"
-              >
-                {SUGGESTION_CATEGORIES.map((category, idx) => (
-                  <QuickSuggestion 
-                    key={idx}
-                    icon={category.icon}
-                    title={category.title}
-                    questions={category.questions}
-                    index={idx}
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Quick suggestion categories always visible with separators */}
+          <motion.div 
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+            className="flex flex-wrap items-center justify-center mt-4 border-t border-gray-200 pt-4"
+          >
+            {SUGGESTION_CATEGORIES.map((category, idx) => (
+              <Fragment key={idx}>
+                <QuickSuggestion 
+                  icon={category.icon}
+                  title={category.title}
+                  questions={category.questions}
+                  index={idx}
+                />
+                {idx < SUGGESTION_CATEGORIES.length - 1 && (
+                  <div className="h-6 w-px bg-gray-300 mx-2" />
+                )}
+              </Fragment>
+            ))}
+          </motion.div>
         </motion.div>
       </div>
 
@@ -734,7 +788,7 @@ function ClinicalAgentChat() {
               </motion.div>
             )}
 
-            {/* References and followups using Accordion after last agent answer */}
+            {/* References and followups with cards instead of accordion */}
             {lastQA && !loading && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -742,82 +796,31 @@ function ClinicalAgentChat() {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="mt-6 border-t border-border pt-4"
               >
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="references">
-                    <AccordionTrigger className="font-medium text-blue-700 flex items-center gap-1">
-                      <BookOpen size={16} />
-                      <span>References</span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4 mt-2">
-                        {lastQA.links.map((l, i) => (
-                          <motion.li 
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: 0.1 + i * 0.05 }}
-                            className="flex items-center gap-1 text-blue-600 hover:underline"
-                          >
-                            <Link2 size={14} className="inline-block flex-shrink-0" />
-                            <a href={l.url} target="_blank" rel="noopener noreferrer">{l.title}</a>
-                          </motion.li>
-                        ))}
-                      </ul>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="followups">
-                    <AccordionTrigger className="font-medium text-blue-700">
-                      Follow-up questions
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {lastQA.followups.map((f, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.3, delay: 0.2 + i * 0.05 }}
-                          >
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-xs border-blue-200 hover:bg-blue-50"
-                              onClick={() => handleSuggestionClick(f)}
-                            >
-                              {f}
-                            </Button>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  {/* Add more categories if needed */}
-                  <AccordionItem value="related-topics">
-                    <AccordionTrigger className="font-medium text-blue-700 flex items-center gap-1">
-                      <SearchIcon size={16} />
-                      <span>Related Topics</span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                        {Object.keys(QA_MAP).slice(0, 6)
-                          .filter(key => key !== messages[messages.length - 2]?.text)
-                          .map((key, i) => (
-                            <div 
-                              key={i}
-                              className="flex items-center text-sm hover:bg-blue-50 rounded p-1 cursor-pointer"
-                              onClick={() => handleSuggestionClick(key)}
-                            >
-                              <ChevronRight size={14} className="text-blue-500 mr-1" />
-                              <span className="line-clamp-1 text-blue-700">{key}</span>
-                            </div>
-                          ))
-                        }
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                {/* References Card */}
+                <ResponseCardGroup 
+                  title="References" 
+                  icon={<BookOpen size={16} />} 
+                  items={lastQA.links} 
+                  isLink={true}
+                />
+                
+                {/* Follow-up Questions Card */}
+                <ResponseCardGroup 
+                  title="Follow-up Questions" 
+                  icon={<StethoscopeIcon size={16} />} 
+                  items={lastQA.followups} 
+                  onClick={handleSuggestionClick}
+                />
+                
+                {/* Related Topics Card */}
+                <ResponseCardGroup 
+                  title="Related Topics" 
+                  icon={<SearchIcon size={16} />} 
+                  items={Object.keys(QA_MAP)
+                    .slice(0, 6)
+                    .filter(key => key !== messages[messages.length - 2]?.text)}
+                  onClick={handleSuggestionClick}
+                />
               </motion.div>
             )}
           </div>
