@@ -1,24 +1,68 @@
 "use client";
 
 import { Globe, Paperclip, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 
-export default function AIInput_04({ onSubmit }: { onSubmit?: (query: string) => void }) {
-    const [value, setValue] = useState("");
+interface AIInput04Props {
+    onSubmit?: (query: string) => void;
+    value?: string;
+    onChange?: (value: string) => void;
+}
+
+export type AIInput04Ref = {
+    setValue: (value: string) => void;
+};
+
+const AIInput_04 = forwardRef<AIInput04Ref, AIInput04Props>(({ 
+    onSubmit, 
+    value: externalValue, 
+    onChange: externalOnChange 
+}, ref) => {
+    const [internalValue, setInternalValue] = useState("");
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 52,
         maxHeight: 200,
     });
     const [showSearch, setShowSearch] = useState(true);
+    
+    // Use controlled or uncontrolled value
+    const value = externalValue !== undefined ? externalValue : internalValue;
+    
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        setValue: (newValue: string) => {
+            if (externalOnChange) {
+                externalOnChange(newValue);
+            } else {
+                setInternalValue(newValue);
+            }
+            // Adjust height after a small delay to ensure content is updated
+            setTimeout(() => adjustHeight(), 0);
+        }
+    }));
 
     const handleSubmit = () => {
-        if (onSubmit) onSubmit(value);
-        setValue("");
+        if (onSubmit && value) onSubmit(value);
+        // Only clear internal state if using uncontrolled mode
+        if (externalValue === undefined) {
+            setInternalValue("");
+        } else if (externalOnChange) {
+            externalOnChange("");
+        }
         adjustHeight(true);
+    };
+    
+    const handleChange = (newValue: string) => {
+        if (externalOnChange) {
+            externalOnChange(newValue);
+        } else {
+            setInternalValue(newValue);
+        }
+        adjustHeight();
     };
 
     return (
@@ -39,8 +83,7 @@ export default function AIInput_04({ onSubmit }: { onSubmit?: (query: string) =>
                                 }
                             }}
                             onChange={(e) => {
-                                setValue(e.target.value);
-                                adjustHeight();
+                                handleChange(e.target.value);
                             }}
                         />
                     </div>
@@ -131,4 +174,8 @@ export default function AIInput_04({ onSubmit }: { onSubmit?: (query: string) =>
             </div>
         </div>
     );
-}
+});
+
+AIInput_04.displayName = "AIInput_04";
+
+export default AIInput_04;

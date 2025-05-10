@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-type Tab = "Home" | "Patient Records" | "Appointments" | "Prescriptions" | "AI Assistant" | "Insurance";
+import { Tab } from "@/components/types";
 
 interface SidebarProps {
   tabs: Tab[];

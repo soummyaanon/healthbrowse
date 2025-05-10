@@ -1,17 +1,19 @@
 "use client"
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Shield, Bot } from "lucide-react";
 import Image from 'next/image';
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
 import { Input } from "@/components/ui/input";
-import { House, Stethoscope, ShieldCheck, CalendarDays, Bot } from "lucide-react";
+import { House, Stethoscope, ShieldCheck, CalendarDays } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import ClinicalConsult from "@/components/ClinicalConsult";
+import { Tab } from "@/components/types";
+const ClinicalAgentChat = lazy(() => import("@/components/ClinicalAgentChat"));
 
-type Tab = "Home" | "Patient Records" | "Appointments" | "Prescriptions" | "AI Assistant" | "Insurance";
-const tabs: Tab[] = ["Home", "Patient Records", "Appointments", "Prescriptions", "AI Assistant", "Insurance"];
+const tabs: Tab[] = ["Home", "Patient Records", "Appointments", "Prescriptions", "AI Assistant", "Insurance", "Consult"];
 
 export default function BrowserShell() {
   const [activeTab, setActiveTab] = useState<Tab>("Home");
@@ -74,6 +76,23 @@ export default function BrowserShell() {
             {activeTab === "Prescriptions" && <PrescriptionsContent />}
             {activeTab === "AI Assistant" && <AIAssistantContent />}
             {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+            {activeTab === "Consult" && (
+              <div className="flex flex-col items-center justify-center h-full w-full">
+                <div className="w-full max-w-4xl mx-auto flex-1">
+                  <Suspense fallback={
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <div className="animate-pulse flex flex-col items-center gap-3">
+                        <Bot size={40} className="text-primary" />
+                        <div className="text-lg font-medium">Loading Clinical Consult...</div>
+                        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </div>
+                  }>
+                    <ClinicalAgentChat />
+                  </Suspense>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <Sidebar tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} agentWorking={agentWorking} />
@@ -1038,13 +1057,13 @@ function AgenticSimulation({ messages }: { messages: { sender: string; text: str
               </div>
               <code className="bg-white p-1 rounded text-xs block">
                 {toolName === "search_database" && (
-                  <span className="opacity-70">search_insurance_database(query: "{messages[0].text}", location: "user_region", plan_type: "health")</span>
+                  <span className="opacity-70">search_insurance_database(query: &quot;{messages[0].text}&quot;, location: &quot;user_region&quot;, plan_type: &quot;health&quot;)</span>
                 )}
                 {toolName === "analyze_plans" && (
-                  <span className="opacity-70">analyze_plan_options(user_profile: "current", affordability_index: 0.7, coverage_priority: "comprehensive")</span>
+                  <span className="opacity-70">analyze_plan_options(user_profile: &quot;current&quot;, affordability_index: 0.7, coverage_priority: &quot;comprehensive&quot;)</span>
                 )}
                 {toolName === "form_assistant" && (
-                  <span className="opacity-70">prepare_form_assistant(form_type: "insurance_application", mode: "auto_fill", data_source: "user_profile")</span>
+                  <span className="opacity-70">prepare_form_assistant(form_type: &quot;insurance_application&quot;, mode: &quot;auto_fill&quot;, data_source: &quot;user_profile&quot;)</span>
                 )}
               </code>
             </div>
