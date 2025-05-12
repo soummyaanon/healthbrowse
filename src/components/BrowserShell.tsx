@@ -3,80 +3,94 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Shield, Bot } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck } from "lucide-react";
 import Image from 'next/image';
-import AIInput_04 from "@/components/kokonutui/ai-input-04";
 import { Input } from "@/components/ui/input";
-import { House, Stethoscope, ShieldCheck, CalendarDays } from "lucide-react";
+import { Stethoscope, CalendarDays, Pill } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
-import ClinicalConsult from "@/components/ClinicalConsult";
 import { Tab } from "@/components/types";
+import AIInput_04 from "@/components/kokonutui/ai-input-04";
+import { useTheme } from "next-themes";
 const ClinicalAgentChat = lazy(() => import("@/components/ClinicalAgentChat"));
 
-const tabs: Tab[] = ["Home", "Patient Records", "Appointments", "Prescriptions", "AI Assistant", "Insurance", "Consult"];
+const tabs: Tab[] = ["Home", "Patient Records", "Appointments", "Prescriptions", "AI Assistant", "Insurance"];
 
 export default function BrowserShell() {
   const [activeTab, setActiveTab] = useState<Tab>("Home");
   const [showAIWidget, setShowAIWidget] = useState(false);
   const [agentWorking, setAgentWorking] = useState(false);
+  const [consultMode, setConsultMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [simulationMessages, setSimulationMessages] = useState<{ sender: string; text: string }[]>([]);
+
+  const handleSearch = (query: string) => {
+    const msgs = [
+      { sender: 'User', text: query },
+      { sender: 'ErachI', text: `Searching for "${query}"...` },
+      { sender: 'ErachI', text: `I found some insurance options related to "${query}". Would you like to apply?` },
+      { sender: 'ErachI', text: `Let me help you fill out an application form.` },
+    ];
+    setSimulationMessages(msgs);
+    setAgentWorking(true);
+    setConsultMode(false);
+    setActiveTab("Home");
+    setTimeout(() => setActiveTab("Insurance"), (msgs.length + 1) * 1000);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="flex items-center px-4 py-2 border-b border-border bg-card">
+      <header className="flex items-center px-4 py-2 border-b border-border bg-card shadow-sm">
         <div className="flex items-center space-x-2">
           <Button variant="ghost" size="icon"><ChevronLeft /></Button>
           <Button variant="ghost" size="icon"><ChevronRight /></Button>
           <Button variant="ghost" size="icon"><RefreshCw /></Button>
-          <button
-            className={cn(
-              "px-3 py-1 rounded-md transition",
-              activeTab === "Home"
-                ? "bg-accent text-accent-foreground"
-                : "hover:bg-muted hover:bg-opacity-20"
-            )}
-            onClick={() => setActiveTab("Home")}
-          >
-            <House />
-          </button>
-          <button
-            className={cn(
-              "px-3 py-1 rounded-md transition flex items-center space-x-1",
-              activeTab === "Insurance"
-                ? "bg-accent text-accent-foreground"
-                : "hover:bg-muted hover:bg-opacity-20"
-            )}
-            onClick={() => setActiveTab("Insurance")}
-          >
-            <Shield size={16} />
-            <span className="text-xs">HealthShield Insurance</span>
-          </button>
         </div>
-        <div className="flex flex-1 px-4">
+        <div className="flex items-center mr-4 ml-2">
+          <div className="flex items-center">
+
+          </div>
+        </div>
+        <div className="flex flex-1 px-2">
           <Input
             type="text"
-            className="flex-1 bg-muted text-foreground placeholder-muted-foreground px-3 py-1 rounded-md focus:outline-none"
+            className="flex-1 bg-background text-foreground placeholder:text-muted-foreground border border-input px-3 py-1 rounded-md focus:outline-none"
             placeholder="Search or enter address"
-            defaultValue={activeTab === "Insurance" ? "https://healthshield-insurance.com/apply" : ""}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                handleSearch(searchQuery.trim());
+                setSearchQuery('');
+              }
+            }}
           />
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3 ml-2">
           <div className="flex items-center text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+            <ShieldCheck className="w-3 h-3 mr-1" />
             <span>Secure</span>
           </div>
-          <Settings className="cursor-pointer" />
-          <User className="cursor-pointer" />
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+            <Settings className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+            <User className="h-5 w-5" />
+          </Button>
         </div>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-auto p-4 relative">
           <div key={activeTab} className="h-full animate__animated animate__fadeIn">
-            {activeTab === "Home" && <HomeContent setActiveTab={setActiveTab} setAgentWorking={setAgentWorking} />}
-            {activeTab === "Patient Records" && <PatientRecordsContent />}
-            {activeTab === "Appointments" && <AppointmentsContent />}
-            {activeTab === "Prescriptions" && <PrescriptionsContent />}
-            {activeTab === "AI Assistant" && <AIAssistantContent />}
-            {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
-            {activeTab === "Consult" && (
+            {activeTab === "Home" && !consultMode && (
+              <HomeContent
+                handleSearch={handleSearch}
+                simulationMessages={simulationMessages}
+                setActiveTab={setActiveTab}
+                setAgentWorking={setAgentWorking}
+                setConsultMode={setConsultMode}
+              />
+            )}
+            {activeTab === "Home" && consultMode && (
               <div className="flex flex-col items-center justify-center h-full w-full">
                 <div className="w-full max-w-4xl mx-auto flex-1">
                   <Suspense fallback={
@@ -93,60 +107,102 @@ export default function BrowserShell() {
                 </div>
               </div>
             )}
+            {activeTab === "Patient Records" && <PatientRecordsContent />}
+            {activeTab === "Appointments" && <AppointmentsContent />}
+            {activeTab === "Prescriptions" && <PrescriptionsContent />}
+            {activeTab === "AI Assistant" && <AIAssistantContent />}
+            {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
           </div>
         </div>
-        <Sidebar tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} agentWorking={agentWorking} />
+        <Sidebar
+          tabs={tabs}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          agentWorking={agentWorking}
+          consultMode={consultMode}
+          setConsultMode={setConsultMode}
+        />
       </main>
       {showAIWidget ? (
-        <div className="fixed bottom-4 right-4 w-80 h-96 bg-card rounded-lg shadow-lg flex flex-col">
-          <div className="flex items-center justify-between p-2 border-b border-border">
-            <div className="font-semibold">AI Assistant</div>
+        <div className="fixed bottom-4 right-4 w-80 h-96 bg-card rounded-lg shadow-xl border border-border flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between p-3 border-b border-border bg-primary/5">
+            <div className="flex items-center">
+              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center mr-2">
+                <Bot size={14} className="text-primary-foreground" />
+              </div>
+              <div className="font-semibold">WujiHealth Assistant</div>
+            </div>
             <Button variant="ghost" size="icon" onClick={() => setShowAIWidget(false)}>
-              <X />
+              <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-auto p-2 space-y-2">
+          <div className="flex-1 overflow-auto p-3 space-y-3 bg-background/30">
             <div className="flex justify-start">
-              <div className="bg-muted px-3 py-1 rounded-lg">Hello, how can I help you?</div>
+              <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
+                <p className="text-sm">Hello, how can I help you with your healthcare needs today?</p>
+              </div>
             </div>
             <div className="flex justify-end">
-              <div className="bg-primary text-primary-foreground px-3 py-1 rounded-lg">Show patient records</div>
+              <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg max-w-[80%]">
+                <p className="text-sm">Can you show me my patient records?</p>
+              </div>
             </div>
             <div className="flex justify-start">
-              <div className="bg-muted px-3 py-1 rounded-lg">Sure, here are some records.</div>
+              <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
+                <p className="text-sm">Of course! I've pulled up your recent records. Would you like to see your latest lab results or your appointment history?</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-3 border-t border-border">
+            <div className="relative">
+              <Input
+                className="pr-10 py-2"
+                placeholder="Type your question here..."
+              />
+              <Button className="absolute right-1 top-1 h-7 w-7 p-0" size="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+              </Button>
             </div>
           </div>
         </div>
       ) : (
         <button
-          className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg"
+          className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
           onClick={() => setShowAIWidget(true)}
         >
-          <MessageSquare />
+          <div className="relative">
+            <MessageSquare className="h-6 w-6" />
+            <span className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px] font-bold animate-pulse">
+              +
+            </span>
+          </div>
+          <span className="absolute right-full mr-2 bg-background text-foreground px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            AI Assistant
+          </span>
         </button>
       )}
     </div>
   );
 }
 
-function HomeContent({ setActiveTab, setAgentWorking }: { 
-  setActiveTab: React.Dispatch<React.SetStateAction<Tab>>,
-  setAgentWorking: React.Dispatch<React.SetStateAction<boolean>>
+function HomeContent({ handleSearch, simulationMessages, setActiveTab, setAgentWorking, setConsultMode }: {
+  handleSearch: (query: string) => void;
+  simulationMessages: { sender: string; text: string }[];
+  setActiveTab: React.Dispatch<React.SetStateAction<Tab>>;
+  setAgentWorking: React.Dispatch<React.SetStateAction<boolean>>;
+  setConsultMode: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [loading, setLoading] = useState(true);
-  const [simulationMessages, setSimulationMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [localQuery, setLocalQuery] = useState("");
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  const handleSearch = (query: string) => {
-    const msgs = [
-      { sender: 'User', text: query },
-      { sender: 'ErachI', text: `Searching for "${query}"...` },
-      { sender: 'ErachI', text: `I found some insurance options related to "${query}". Would you like to apply?` },
-      { sender: 'ErachI', text: `Let me help you fill out an application form.` },
-    ];
-    setSimulationMessages(msgs);
-    setAgentWorking(true);
-    setTimeout(() => setActiveTab("Insurance"), (msgs.length + 1) * 1000);
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
   if (loading) {
@@ -160,22 +216,39 @@ function HomeContent({ setActiveTab, setAgentWorking }: {
   }
   return (
     <div className="relative w-full h-full">
-      <Image src="/helo.jpeg" alt="Background" fill className="object-cover object-center" />
-      <div className="absolute inset-0  bg-opacity-50"></div>
-      <div className="relative z-10 flex flex-col items-center justify-center h-full space-y-4 p-4">
-        <AIInput_04 onSubmit={handleSearch} />
-        <div className="flex flex-wrap justify-center gap-6">
-          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
-            <Stethoscope size={24} />
-          </button>
-          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
-            <ShieldCheck size={24} />
-          </button>
-          <button className="p-4 bg-primary text-primary-foreground rounded-full hover:bg-opacity-90 transition">
-            <CalendarDays size={24} />
-          </button>
-        </div>
-        {simulationMessages.length > 0 && <AgenticSimulation messages={simulationMessages} />}
+      <Image
+        src={mounted ? (theme === 'dark' ? "/helo2.jpeg" : "/helo.jpeg") : "/helo.jpeg"}
+        alt="Background"
+        fill
+        className="absolute inset-0 object-cover object-center opacity-90"
+        priority
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background/80"></div>
+      <div className="relative z-10 flex flex-col items-center justify-center h-full w-full p-4">
+        {simulationMessages.length === 0 ? (
+          <>
+            <div className="w-full max-w-2xl mx-auto md:w-3/4 sm:w-full">
+              <div className="flex flex-col items-center justify-center space-y-6 mb-8">
+                <div className="flex items-center justify-center bg-primary/10 dark:bg-primary/20">
+
+                </div>
+                <div className="text-center">
+                  <h1 className="text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 mb-2">
+                    WujiHealth
+                  </h1>
+                  <p className="text-2xl font-semibold text-primary mb-1">Your Intelligent Healthcare Browser</p>
+                </div>
+              </div>
+              <AIInput_04
+                value={localQuery}
+                onChange={(value) => setLocalQuery(value)}
+                onSubmit={(value) => { handleSearch(value); setLocalQuery(""); }}
+              />
+            </div>
+          </>
+        ) : (
+          <AgenticSimulation messages={simulationMessages} />
+        )}
       </div>
     </div>
   );
@@ -322,7 +395,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
       </div>
       
       {permissionRequested && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
             <div className="flex items-center mb-4">
               <Bot size={24} className="text-blue-500 mr-2" />

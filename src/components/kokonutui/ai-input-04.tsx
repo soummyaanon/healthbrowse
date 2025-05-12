@@ -66,15 +66,15 @@ const AIInput_04 = forwardRef<AIInput04Ref, AIInput04Props>(({
     };
 
     return (
-        <div className="w-full py-4">
-            <div className="relative max-w-xl w-full mx-auto">
+        <div className="w-full py-2 md:py-4">
+            <div className="relative w-full mx-auto">
                 <div className="relative flex flex-col">
                     <div className="overflow-y-auto max-h-[200px]">
                         <Textarea
                             id="ai-input-04"
                             value={value}
                             placeholder="Search healthcare resources..."
-                            className="w-full rounded-xl rounded-b-none px-4 py-3 bg-white dark:bg-white/10 border-none dark:text-white placeholder:text-black/70 dark:placeholder:text-white/70 resize-none focus-visible:ring-0 leading-[1.2]"
+                            className="w-full rounded-xl rounded-b-none px-3 md:px-4 py-2 md:py-3 bg-background border border-input dark:bg-background dark:text-foreground placeholder:text-muted-foreground dark:placeholder:text-muted-foreground resize-none focus-visible:ring-0 leading-[1.2]"
                             ref={textareaRef}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
@@ -88,11 +88,11 @@ const AIInput_04 = forwardRef<AIInput04Ref, AIInput04Props>(({
                         />
                     </div>
 
-                    <div className="h-12 bg-white dark:bg-white/5 rounded-b-xl">
+                    <div className="h-12 bg-background border border-input border-t-0 rounded-b-xl dark:bg-background">
                         <div className="absolute left-3 bottom-3 flex items-center gap-2">
-                            <label className="cursor-pointer rounded-lg p-2 bg-white dark:bg-white/5">
+                            <label className="cursor-pointer rounded-lg p-2 bg-background dark:bg-background">
                                 <input type="file" className="hidden" />
-                                <Paperclip className="w-4 h-4 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors" />
+                                <Paperclip className="w-4 h-4 text-muted-foreground hover:text-foreground transition-colors" />
                             </label>
                             <button
                                 type="button"
@@ -103,7 +103,7 @@ const AIInput_04 = forwardRef<AIInput04Ref, AIInput04Props>(({
                                     "rounded-full transition-all flex items-center gap-2 px-1.5 py-1 border h-8 cursor-pointer",
                                     showSearch
                                         ? "bg-sky-500/15 border-sky-400 text-sky-500"
-                                        : "bg-white dark:bg-white/5 border-transparent text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white"
+                                        : "bg-background dark:bg-background border-transparent text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 <div className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -163,7 +163,7 @@ const AIInput_04 = forwardRef<AIInput04Ref, AIInput04Props>(({
                                     "rounded-lg p-2 transition-colors",
                                     value
                                         ? "bg-sky-500/15 text-sky-500"
-                                        : "bg-white dark:bg-white/5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white cursor-pointer"
+                                        : "bg-background dark:bg-background text-muted-foreground hover:text-foreground cursor-pointer"
                                 )}
                             >
                                 <Send className="w-4 h-4" />

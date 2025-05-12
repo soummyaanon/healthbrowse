@@ -75,13 +75,13 @@ const QA_MAP: Record<string, { answer: string; links: { title: string; url: stri
     ]
   },
   "What are the most common side effects of metformin?": {
-    answer: "The most common side effects of metformin are gastrointestinal, including diarrhea, nausea, vomiting, abdominal discomfort, and metallic taste. These effects occur in up to 30% of patients but are often transient. Starting with a low dose and gradually increasing, taking with meals, and using extended-release formulations can help mitigate these effects. Lactic acidosis is a rare but serious side effect, most common in patients with significant renal impairment.",
+    answer: "The most common side effects of metformin include gastrointestinal symptoms such as diarrhea, nausea, vomiting, gas, bloating, and abdominal discomfort. Less commonly, patients may experience vitamin B12 deficiency with long-term use. Rare but serious adverse effects include lactic acidosis, particularly in those with renal impairment. To minimize GI side effects, start metformin at a low dose (e.g., 500 mg once daily), take it with meals, and titrate up gradually. Extended-release formulations may improve tolerability.",
     links: [
-      { title: "FDA: Metformin Label", url: "https://www.accessdata.fda.gov/drugsatfda_docs/label/2017/020357s037s039,021202s021s023lbl.pdf" },
-      { title: "UpToDate: Metformin", url: "https://www.uptodate.com/contents/metformin-drug-information" },
       { title: "MedlinePlus: Metformin", url: "https://medlineplus.gov/druginfo/meds/a696005.html" },
-      { title: "American Diabetes Association", url: "https://diabetes.org/healthy-living/medication-treatments/metformin" },
-      { title: "PubMed: Metformin Side Effects", url: "https://pubmed.ncbi.nlm.nih.gov/?term=metformin+side+effects" }
+      { title: "DailyMed: Metformin Label", url: "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=38d96cac-5c78-4101-9a7e-e5e09a10f0d2" },
+      { title: "PubMed: GI Side Effects of Metformin", url: "https://pubmed.ncbi.nlm.nih.gov/11837151/" },
+      { title: "American Diabetes Association: Standards of Care", url: "https://care.diabetesjournals.org/content/46/Supplement_1/S38" },
+      { title: "NICE Type 2 Diabetes Guideline", url: "https://www.nice.org.uk/guidance/ng28" }
     ],
     followups: [
       "How should metformin be dosed to minimize side effects?",
@@ -620,27 +620,33 @@ function ClinicalAgentChat() {
         {icon}
         <span>{title}</span>
       </h3>
-      <div className={isLink ? "grid grid-cols-1 md:grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>
-        {isLink ? (
-          // For reference links
-          (items as { title: string; url: string }[]).map((item, idx) => (
-            <motion.a
+      {isLink ? (
+        // For reference links - compact display with headings
+        <div className="space-y-2">
+          {(items as { title: string; url: string }[]).map((item, idx) => (
+            <motion.div
               key={idx}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
               initial={{ opacity: 0, x: -5 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.1 + idx * 0.05 }}
-              className="flex items-center gap-1 text-blue-600 hover:underline text-xs"
+              className="border-b border-gray-100 pb-1.5 last:border-0"
             >
-              <Link2 size={12} className="flex-shrink-0" />
-              <span className="line-clamp-1">{item.title}</span>
-            </motion.a>
-          ))
-        ) : (
-          // For followup questions
-          (items as string[]).map((item, idx) => (
+              <div className="font-medium text-xs text-gray-800">{item.title}</div>
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline text-[10px] break-all"
+              >
+                {item.url}
+              </a>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        // For followup questions
+        <div className="flex flex-wrap gap-2">
+          {(items as string[]).map((item, idx) => (
             <motion.button
               key={idx}
               initial={{ opacity: 0, scale: 0.9 }}
@@ -651,14 +657,14 @@ function ClinicalAgentChat() {
             >
               {item}
             </motion.button>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 
   return (
-    <div className="flex flex-col w-full h-full max-w-4xl mx-auto">
+    <div className="flex flex-col w-full h-full max-w-5xl mx-auto">
       {/* Header and input section */}
       <div className="flex flex-col items-center mb-8 pt-8">
         <motion.div 
@@ -713,7 +719,7 @@ function ClinicalAgentChat() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="flex-1 overflow-y-auto px-4 py-6 mb-4 border rounded-lg bg-card max-w-3xl mx-auto w-full"
+          className="flex-1 overflow-y-auto px-4 py-6 mb-4 border rounded-lg bg-card max-w-4xl mx-auto w-full shadow-sm"
         >
           <div className="space-y-6">
             <AnimatePresence>
@@ -763,7 +769,7 @@ function ClinicalAgentChat() {
                         </span>
                       )}
                       {!msg.thinking && !msg.tool && (
-                        <div className="whitespace-pre-line">{msg.text}</div>
+                        <div className="whitespace-pre-line text-sm">{msg.text}</div>
                       )}
                     </div>
                   </motion.div>
