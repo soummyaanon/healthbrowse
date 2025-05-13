@@ -3,17 +3,17 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, DollarSign, Search, ClipboardCheck, Info } from "lucide-react";
-import Image from 'next/image';
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
-import { Stethoscope, CalendarDays, Pill } from "lucide-react";
+
 import Sidebar from "@/components/Sidebar";
 import { Tab } from "@/components/types";
-import AIInput_04 from "@/components/kokonutui/ai-input-04";
-import { useTheme } from "next-themes";
+// import AIInput_04 from "@/components/kokonutui/ai-input-04";
+// import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import HomeContent from "@/components/HomeContent";
-import AgenticSimulation from "@/components/AgenticSimulation";
+// import AgenticSimulation from "@/components/AgenticSimulation";
 const ClinicalAgentChat = lazy(() => import("@/components/ClinicalAgentChat"));
 const AgentsDashboard = lazy(() => import("@/components/AgentsDashboard"));
 
@@ -203,7 +203,7 @@ export default function BrowserShell() {
               </div>
               <div className="flex justify-start">
                 <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
-                  <p className="text-sm">Of course! I've pulled up your recent records. Would you like to see your latest lab results or your appointment history?</p>
+                  <p className="text-sm">Of course! I&apos;ve pulled up your recent records. Would you like to see your latest lab results or your appointment history?</p>
                 </div>
               </div>
             </div>
@@ -392,7 +392,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
               <Bot size={24} className="text-blue-500 mr-2" />
               <h3 className="text-lg font-bold">AI Assistant Permission</h3>
             </div>
-            <p className="mb-4">I'd like to help you complete this form automatically. Would you like me to fill out the application for you?</p>
+            <p className="mb-4">I&apos;d like to help you complete this form automatically. Would you like me to fill out the application for you?</p>
             <div className="flex space-x-3">
               <Button 
                 className="flex-1 bg-blue-600 hover:bg-blue-700" 
@@ -405,7 +405,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
                 className="flex-1" 
                 onClick={handleDenyPermission}
               >
-                No, I'll do it myself
+                No, I&apos;ll do it myself
               </Button>
             </div>
           </div>
@@ -450,10 +450,10 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
             </div>
           )}
           {fillingStatus === "completed" && (
-            <div className="text-sm flex items-center">
-              <span className="inline-block h-2 w-2 mr-2 bg-green-300 rounded-full"></span>
-              Form filled successfully
-            </div>
+                          <div className="text-sm flex items-center">
+                <span className="inline-block h-2 w-2 mr-2 bg-green-300 rounded-full"></span>
+                Form filled successfully
+              </div>
           )}
         </div>
         

@@ -1,22 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Search, 
   RefreshCw, 
   Book, 
-  FileText, 
+
   Link as LinkIcon, 
   ArrowUpRight, 
   BookOpen,
-  PlusCircle,
-  MinusCircle,
+
   Bookmark,
   History
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 
 interface SearchResult {
   id: number;
@@ -171,7 +170,7 @@ export default function XenSearch() {
                 <div className="space-y-4">
                   {results.length > 0 && (
                     <div className="text-sm text-muted-foreground mb-2">
-                      Found {results.length} results for "{searchQuery}"
+                      Found {results.length} results for &quot;{searchQuery}&quot;
                     </div>
                   )}
                   

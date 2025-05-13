@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
 import AIInput_04, { AIInput04Ref } from "@/components/kokonutui/ai-input-04";
-import { Loader2, Link2, Bot, StethoscopeIcon, ScrollText, Pill, Activity, Heart, BookOpen, SearchIcon, BarChart3, LineChart, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2,  Bot, StethoscopeIcon, ScrollText, Pill, Activity,  BookOpen, SearchIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 

@@ -4,12 +4,12 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  FileText, 
+
   ClipboardCheck, 
   Bot, 
   RefreshCw, 
   AlertTriangle, 
-  CheckCircle,
+
   Info,
   ChevronRight,
   ChevronDown,

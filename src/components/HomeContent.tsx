@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
 import { Bot, FileText, Sparkles, Stethoscope } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from '@/components/ui/button';
+
 import { cn } from '@/lib/utils';
 import { Tab } from '@/components/types';
 import AgenticSimulation from '@/components/AgenticSimulation';
@@ -26,10 +26,10 @@ export default function HomeContent({
   handleSearch, 
   simulationMessages, 
   setActiveTab, 
-  setAgentWorking, 
+
   setConsultMode,
   setXenScribeReady,
-  auditLogs,
+
   setAuditLogs
 }: HomeContentProps) {
   const [loading, setLoading] = useState(true);

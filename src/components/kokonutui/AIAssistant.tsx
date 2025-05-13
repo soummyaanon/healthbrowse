@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Mic, PauseCircle, FileText, FileCheck, Code, ClipboardCheck, RefreshCw, ChevronDown, Check, Wand2, AlertCircle, SendHorizonal, X } from "lucide-react";
+import { Mic, PauseCircle, FileText, FileCheck, Code, ClipboardCheck, RefreshCw,  Check, Wand2, AlertCircle, SendHorizonal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 
@@ -229,6 +229,16 @@ ${subjectiveContent}
 6. If symptoms worsen or change in character, return sooner for reevaluation`;
   };
 
+  const updatePatientName = (name: string) => {
+    setPatientContext(prev => ({...prev, name}));
+  };
+  
+  useEffect(() => {
+    if (textareaRef.current) {
+      adjustHeight();
+    }
+  }, [adjustHeight, noteContent, textareaRef]);
+
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-4 bg-muted/20">
@@ -352,7 +362,7 @@ ${subjectiveContent}
                     <AlertCircle className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium text-blue-800 dark:text-blue-300">New code suggestions available</p>
-                      <p className="text-blue-700 dark:text-blue-400">Based on the latest transcript data, we've updated code suggestions.</p>
+                      <p className="text-blue-700 dark:text-blue-400">Based on the latest transcript data, we have updated code suggestions.</p>
                     </div>
                   </div>
                 )}
@@ -425,7 +435,7 @@ ${subjectiveContent}
               <div className="rounded-md border bg-background p-4">
                 <h3 className="font-semibold mb-2">HCC Risk Adjustment</h3>
                 <div className="space-y-2">
-                  {MOCK_HCC.map((hcc, i) => (
+                  {MOCK_HCC.map((hcc) => (
                     <div 
                       key={hcc.code} 
                       className="p-3 rounded-md bg-muted flex justify-between items-center"
@@ -494,7 +504,7 @@ ${subjectiveContent}
                         <div className="text-center">
                           <Mic className="h-10 w-10 mb-2 mx-auto text-muted-foreground/50" />
                           <p>No transcript available</p>
-                          <p className="text-sm mt-1">Click &quot;Start Recording&quot; to begin capturing audio</p>
+                          <p className="text-sm mt-1">Click the Start Recording button to begin capturing audio</p>
                         </div>
                       )}
                     </div>
@@ -542,7 +552,12 @@ ${subjectiveContent}
                     {patientContext.age} y/o {patientContext.gender}
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 px-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2"
+                  onClick={() => updatePatientName(patientContext.name)}
+                >
                   <Wand2 className="h-4 w-4 mr-1" />
                   Apply Context
                 </Button>

@@ -3,7 +3,7 @@
 import React, { useState, lazy, Suspense, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileText, DollarSign, Search, ClipboardCheck, Info, RefreshCw, ChevronLeft, ChevronRight, Bot } from "lucide-react";
+import { FileText, DollarSign, Search, ClipboardCheck,  RefreshCw, ChevronLeft, ChevronRight, Bot } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 

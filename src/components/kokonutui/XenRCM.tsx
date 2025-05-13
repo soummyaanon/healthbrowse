@@ -3,22 +3,20 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+
 import { 
   FileText, 
-  ClipboardCheck, 
+
   Bot, 
   RefreshCw, 
   DollarSign, 
   CheckCircle, 
-  XCircle,
-  ShieldAlert,
   FileSearch,
   MailPlus,
   Download
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+
 
 const MOCK_DENIAL = `
 Claim #: 1234567890
@@ -71,23 +69,31 @@ Dr. Sarah Johnson
 NPI: 1234567890
 `;
 
+// Define interfaces for the denial data
+interface DenialData {
+  claimNumber: string;
+  dateOfService: string;
+  provider: string;
+  patient: string;
+  procedure: string;
+  denialReason: string;
+  payer: string;
+  denialDate: string;
+  amount: string;
+}
+
+interface DenialAnalysis extends DenialData {
+  denialType: string;
+  appealStrategy: string;
+}
+
 export default function XenRCM() {
   const [activeTab, setActiveTab] = useState("denial");
   const [denialText, setDenialText] = useState(MOCK_DENIAL);
   const [appealTemplate, setAppealTemplate] = useState(MOCK_APPEAL_TEMPLATE);
   const [isGenerating, setIsGenerating] = useState(false);
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
-  const [analyzedDenial, setAnalyzedDenial] = useState<null | {
-    claimNumber: string;
-    dateOfService: string;
-    provider: string;
-    patient: string;
-    procedure: string;
-    denialReason: string;
-    payer: string;
-    denialDate: string;
-    amount: string;
-  }>(null);
+  const [analyzedDenial, setAnalyzedDenial] = useState<null | DenialData>(null);
 
   const handleAnalyzeDenial = () => {
     setIsGenerating(true);
@@ -115,7 +121,7 @@ export default function XenRCM() {
         const denialDateMatch = denialText.match(/Denial Date: (.+)/);
         const amountMatch = denialText.match(/Amount: (.+)/);
         
-        const extractedData = {
+        const extractedData: DenialData = {
           claimNumber: claimMatch?.[1] || "",
           dateOfService: dosMatch?.[1] || "",
           provider: providerMatch?.[1] || "",
@@ -128,11 +134,11 @@ export default function XenRCM() {
         };
         
         setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenRCM: Extracted ${Object.keys(extractedData).filter(k => extractedData[k as keyof typeof extractedData]).length} data fields`]);
-        return new Promise(resolve => setTimeout(() => resolve(extractedData), 800));
+        return new Promise<DenialData>(resolve => setTimeout(() => resolve(extractedData), 800));
       };
       
       // Step 3: Denial classification
-      const stepThree = (data: any) => {
+      const stepThree = (data: DenialData) => {
         setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenRCM: Step 3 - Classifying denial type and root cause`]);
         
         // Simulate reasoning about the denial type
@@ -158,11 +164,11 @@ export default function XenRCM() {
           setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenRCM: Identified as Other denial type - requires detailed review`]);
         }
         
-        return new Promise(resolve => setTimeout(() => resolve({...data, denialType, appealStrategy}), 800));
+        return new Promise<DenialAnalysis>(resolve => setTimeout(() => resolve({...data, denialType, appealStrategy}), 800));
       };
       
       // Step 4: Set final state
-      const stepFour = (data: any) => {
+      const stepFour = (data: DenialAnalysis) => {
         setAuditLogs(prev => [
           ...prev, 
           `[${new Date().toLocaleTimeString()}] XenRCM: Step 4 - Finalizing analysis and preparing recommendation`,
