@@ -2,9 +2,7 @@
 
 export type Tab =
   | "Home"
-  | "Patient Records"
-  | "Appointments"
-  | "Prescriptions"
   | "AI Assistant"
   | "Insurance"
+  | "Agents"
   | "Consult"; 

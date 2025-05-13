@@ -27,12 +27,15 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
     setMounted(true);
   }, []);
 
+  // Only render theme-dependent styles after mounting to prevent hydration mismatch
+  const sidebarBgClass = mounted && theme === "dark" ? "bg-black" : "bg-card";
+  
   return (
     <div className="relative flex-shrink-0 h-full">
       <aside className={cn(
         "border border-border shadow-lg rounded-md transition-all duration-300 overflow-hidden flex flex-col h-full",
         open ? "w-64" : "w-0",
-        theme === "dark" ? "bg-black" : "bg-card"
+        sidebarBgClass
       )}>
         {open && (
           <>
@@ -108,7 +111,7 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
         size="icon"
         className={cn(
           "absolute top-2 left-0 transform -translate-x-full border border-border rounded-full shadow-md",
-          theme === "dark" ? "bg-black" : "bg-card"
+          mounted ? (theme === "dark" ? "bg-black" : "bg-card") : "bg-card"
         )}
         onClick={() => setOpen(!open)}
       >

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, DollarSign, Search, ClipboardCheck, Info } from "lucide-react";
 import Image from 'next/image';
 import { Input } from "@/components/ui/input";
 import { Stethoscope, CalendarDays, Pill } from "lucide-react";
@@ -11,9 +11,13 @@ import Sidebar from "@/components/Sidebar";
 import { Tab } from "@/components/types";
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
 import { useTheme } from "next-themes";
+import { motion, AnimatePresence } from "framer-motion";
+import HomeContent from "@/components/HomeContent";
+import AgenticSimulation from "@/components/AgenticSimulation";
 const ClinicalAgentChat = lazy(() => import("@/components/ClinicalAgentChat"));
+const AgentsDashboard = lazy(() => import("@/components/AgentsDashboard"));
 
-const tabs: Tab[] = ["Home", "Patient Records", "Appointments", "Prescriptions", "AI Assistant", "Insurance"];
+const tabs: Tab[] = ["Home", "Agents", "Insurance"];
 
 export default function BrowserShell() {
   const [activeTab, setActiveTab] = useState<Tab>("Home");
@@ -22,6 +26,11 @@ export default function BrowserShell() {
   const [consultMode, setConsultMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [simulationMessages, setSimulationMessages] = useState<{ sender: string; text: string }[]>([]);
+  const [xenScribeReady, setXenScribeReady] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<string[]>([
+    `[${new Date().toLocaleTimeString()}] System: WujiHealth Browser initialized`,
+    `[${new Date().toLocaleTimeString()}] System: AI agents loaded successfully`
+  ]);
 
   const handleSearch = (query: string) => {
     const msgs = [
@@ -35,6 +44,17 @@ export default function BrowserShell() {
     setConsultMode(false);
     setActiveTab("Home");
     setTimeout(() => setActiveTab("Insurance"), (msgs.length + 1) * 1000);
+  };
+  
+  const activateXenScribe = () => {
+    setConsultMode(true);
+    setActiveTab("Home");
+    setXenScribeReady(true);
+    setAuditLogs(prev => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] System: XenScribe activated`,
+      `[${new Date().toLocaleTimeString()}] XenScribe: Ready to assist with documentation`
+    ]);
   };
 
   return (
@@ -70,6 +90,17 @@ export default function BrowserShell() {
             <ShieldCheck className="w-3 h-3 mr-1" />
             <span>Secure</span>
           </div>
+          {xenScribeReady && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={activateXenScribe}
+              className="text-blue-500 border-blue-200 hover:bg-blue-50"
+            >
+              <FileText className="h-4 w-4 mr-1.5" />
+              XenScribe
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
             <Settings className="h-5 w-5" />
           </Button>
@@ -80,39 +111,60 @@ export default function BrowserShell() {
       </header>
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-auto p-4 relative">
-          <div key={activeTab} className="h-full animate__animated animate__fadeIn">
-            {activeTab === "Home" && !consultMode && (
-              <HomeContent
-                handleSearch={handleSearch}
-                simulationMessages={simulationMessages}
-                setActiveTab={setActiveTab}
-                setAgentWorking={setAgentWorking}
-                setConsultMode={setConsultMode}
-              />
-            )}
-            {activeTab === "Home" && consultMode && (
-              <div className="flex flex-col items-center justify-center h-full w-full">
-                <div className="w-full max-w-4xl mx-auto flex-1">
-                  <Suspense fallback={
-                    <div className="flex flex-col items-center justify-center h-full">
-                      <div className="animate-pulse flex flex-col items-center gap-3">
-                        <Bot size={40} className="text-primary" />
-                        <div className="text-lg font-medium">Loading Clinical Consult...</div>
-                        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="h-full"
+            >
+              {activeTab === "Home" && !consultMode && (
+                <HomeContent
+                  handleSearch={handleSearch}
+                  simulationMessages={simulationMessages}
+                  setActiveTab={setActiveTab}
+                  setAgentWorking={setAgentWorking}
+                  setConsultMode={setConsultMode}
+                  setXenScribeReady={setXenScribeReady}
+                  auditLogs={auditLogs}
+                  setAuditLogs={setAuditLogs}
+                />
+              )}
+              {activeTab === "Home" && consultMode && (
+                <div className="flex flex-col items-center justify-center h-full w-full">
+                  <div className="w-full max-w-4xl mx-auto flex-1">
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="animate-pulse flex flex-col items-center gap-3">
+                          <Bot size={40} className="text-primary" />
+                          <div className="text-lg font-medium">Loading Clinical Consult...</div>
+                          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
                       </div>
-                    </div>
-                  }>
-                    <ClinicalAgentChat />
-                  </Suspense>
+                    }>
+                      <ClinicalAgentChat />
+                    </Suspense>
+                  </div>
                 </div>
-              </div>
-            )}
-            {activeTab === "Patient Records" && <PatientRecordsContent />}
-            {activeTab === "Appointments" && <AppointmentsContent />}
-            {activeTab === "Prescriptions" && <PrescriptionsContent />}
-            {activeTab === "AI Assistant" && <AIAssistantContent />}
-            {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
-          </div>
+              )}
+              {activeTab === "Agents" && (
+                <Suspense fallback={
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="animate-pulse flex flex-col items-center gap-3">
+                      <Bot size={40} className="text-primary" />
+                      <div className="text-lg font-medium">Loading AI Agents Dashboard...</div>
+                      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                }>
+                  <AgentsDashboard />
+                </Suspense>
+              )}
+              {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
         <Sidebar
           tabs={tabs}
@@ -123,136 +175,75 @@ export default function BrowserShell() {
           setConsultMode={setConsultMode}
         />
       </main>
-      {showAIWidget ? (
-        <div className="fixed bottom-4 right-4 w-80 h-96 bg-card rounded-lg shadow-xl border border-border flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-3 border-b border-border bg-primary/5">
-            <div className="flex items-center">
-              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center mr-2">
-                <Bot size={14} className="text-primary-foreground" />
+      {/* Only show the AI widget when we're not on the Agents tab */}
+      {activeTab !== "Agents" && (
+        showAIWidget ? (
+          <div className="fixed bottom-4 right-4 w-80 h-96 bg-card rounded-lg shadow-xl border border-border flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b border-border bg-primary/5">
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center mr-2">
+                  <Bot size={14} className="text-primary-foreground" />
+                </div>
+                <div className="font-semibold">WujiHealth Assistant</div>
               </div>
-              <div className="font-semibold">WujiHealth Assistant</div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setShowAIWidget(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex-1 overflow-auto p-3 space-y-3 bg-background/30">
-            <div className="flex justify-start">
-              <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
-                <p className="text-sm">Hello, how can I help you with your healthcare needs today?</p>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg max-w-[80%]">
-                <p className="text-sm">Can you show me my patient records?</p>
-              </div>
-            </div>
-            <div className="flex justify-start">
-              <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
-                <p className="text-sm">Of course! I've pulled up your recent records. Would you like to see your latest lab results or your appointment history?</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-3 border-t border-border">
-            <div className="relative">
-              <Input
-                className="pr-10 py-2"
-                placeholder="Type your question here..."
-              />
-              <Button className="absolute right-1 top-1 h-7 w-7 p-0" size="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M22 2L11 13" />
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                </svg>
+              <Button variant="ghost" size="icon" onClick={() => setShowAIWidget(false)}>
+                <X className="h-4 w-4" />
               </Button>
             </div>
+            <div className="flex-1 overflow-auto p-3 space-y-3 bg-background/30">
+              <div className="flex justify-start">
+                <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
+                  <p className="text-sm">Hello, how can I help you with your healthcare needs today?</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg max-w-[80%]">
+                  <p className="text-sm">Can you show me my patient records?</p>
+                </div>
+              </div>
+              <div className="flex justify-start">
+                <div className="bg-muted px-3 py-2 rounded-lg max-w-[80%]">
+                  <p className="text-sm">Of course! I've pulled up your recent records. Would you like to see your latest lab results or your appointment history?</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 border-t border-border">
+              <div className="relative">
+                <Input
+                  className="pr-10 py-2"
+                  placeholder="Type your question here..."
+                />
+                <Button className="absolute right-1 top-1 h-7 w-7 p-0" size="icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      ) : (
-        <button
-          className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
-          onClick={() => setShowAIWidget(true)}
-        >
-          <div className="relative">
-            <MessageSquare className="h-6 w-6" />
-            <span className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px] font-bold animate-pulse">
-              +
+        ) : (
+          <button
+            className="fixed bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
+            onClick={() => setShowAIWidget(true)}
+          >
+            <div className="relative">
+              <MessageSquare className="h-6 w-6" />
+              <span className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px] font-bold animate-pulse">
+                +
+              </span>
+            </div>
+            <span className="absolute right-full mr-2 bg-background text-foreground px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              AI Assistant
             </span>
-          </div>
-          <span className="absolute right-full mr-2 bg-background text-foreground px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            AI Assistant
-          </span>
-        </button>
+          </button>
+        )
       )}
     </div>
   );
 }
 
-function HomeContent({ handleSearch, simulationMessages, setActiveTab, setAgentWorking, setConsultMode }: {
-  handleSearch: (query: string) => void;
-  simulationMessages: { sender: string; text: string }[];
-  setActiveTab: React.Dispatch<React.SetStateAction<Tab>>;
-  setAgentWorking: React.Dispatch<React.SetStateAction<boolean>>;
-  setConsultMode: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  const [loading, setLoading] = useState(true);
-  const [localQuery, setLocalQuery] = useState("");
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        <div className="animate-pulse bg-muted h-6 w-3/4 rounded"></div>
-        <div className="animate-pulse bg-muted h-6 w-2/3 rounded"></div>
-        <div className="animate-pulse bg-muted h-6 w-1/2 rounded"></div>
-      </div>
-    );
-  }
-  return (
-    <div className="relative w-full h-full">
-      <Image
-        src={mounted ? (theme === 'dark' ? "/helo2.jpeg" : "/helo.jpeg") : "/helo.jpeg"}
-        alt="Background"
-        fill
-        className="absolute inset-0 object-cover object-center opacity-90"
-        priority
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background/80"></div>
-      <div className="relative z-10 flex flex-col items-center justify-center h-full w-full p-4">
-        {simulationMessages.length === 0 ? (
-          <>
-            <div className="w-full max-w-2xl mx-auto md:w-3/4 sm:w-full">
-              <div className="flex flex-col items-center justify-center space-y-6 mb-8">
-                <div className="flex items-center justify-center bg-primary/10 dark:bg-primary/20">
-
-                </div>
-                <div className="text-center">
-                  <h1 className="text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 mb-2">
-                    WujiHealth
-                  </h1>
-                  <p className="text-2xl font-semibold text-primary mb-1">Your Intelligent Healthcare Browser</p>
-                </div>
-              </div>
-              <AIInput_04
-                value={localQuery}
-                onChange={(value) => setLocalQuery(value)}
-                onSubmit={(value) => { handleSearch(value); setLocalQuery(""); }}
-              />
-            </div>
-          </>
-        ) : (
-          <AgenticSimulation messages={simulationMessages} />
-        )}
-      </div>
-    </div>
-  );
-}
 
 function InsuranceContent({ agentWorking, setAgentWorking }: { 
   agentWorking: boolean, 
@@ -401,7 +392,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
               <Bot size={24} className="text-blue-500 mr-2" />
               <h3 className="text-lg font-bold">AI Assistant Permission</h3>
             </div>
-            <p className="mb-4">I&apos;d like to help you complete this form automatically. Would you like me to fill out the application for you?</p>
+            <p className="mb-4">I'd like to help you complete this form automatically. Would you like me to fill out the application for you?</p>
             <div className="flex space-x-3">
               <Button 
                 className="flex-1 bg-blue-600 hover:bg-blue-700" 
@@ -414,7 +405,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
                 className="flex-1" 
                 onClick={handleDenyPermission}
               >
-                No, I&apos;ll do it myself
+                No, I'll do it myself
               </Button>
             </div>
           </div>
@@ -817,343 +808,6 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
               )}
             </div>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PatientRecordsContent() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 800); return () => clearTimeout(t); }, []);
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="animate-pulse flex space-x-4">
-            <div className="bg-muted h-6 w-1/4 rounded"></div>
-            <div className="bg-muted h-6 w-1/4 rounded"></div>
-            <div className="bg-muted h-6 w-1/4 rounded"></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <table className="w-full text-left">
-      <thead>
-        <tr className="border-b border-border">
-          <th className="pb-2">Name</th>
-          <th className="pb-2">Age</th>
-          <th className="pb-2">Condition</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Alice Smith</td>
-          <td>29</td>
-          <td>Hypertension</td>
-        </tr>
-        <tr className="bg-card">
-          <td>Bob Johnson</td>
-          <td>45</td>
-          <td>Diabetes</td>
-        </tr>
-        <tr>
-          <td>Carol Williams</td>
-          <td>37</td>
-          <td>Asthma</td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
-
-function AppointmentsContent() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-muted h-8 rounded"></div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <ul className="space-y-4">
-      <li className="p-4 bg-card rounded-lg shadow">
-        <div className="font-semibold">Dr. Adams</div>
-        <div className="text-sm">2025-05-10 10:00 AM</div>
-        <div className="text-xs text-muted-foreground">Confirmed</div>
-      </li>
-      <li className="p-4 bg-card rounded-lg shadow">
-        <div className="font-semibold">Dr. Baker</div>
-        <div className="text-sm">2025-05-12 02:00 PM</div>
-        <div className="text-xs text-muted-foreground">Pending</div>
-      </li>
-    </ul>
-  );
-}
-
-function PrescriptionsContent() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 700); return () => clearTimeout(t); }, []);
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-muted h-6 rounded"></div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <ul className="space-y-4">
-      <li className="p-4 bg-card rounded-lg shadow">
-        <div className="font-semibold">Lisinopril</div>
-        <div>10mg, once daily</div>
-      </li>
-      <li className="p-4 bg-card rounded-lg shadow">
-        <div className="font-semibold">Metformin</div>
-        <div>500mg, twice daily</div>
-      </li>
-    </ul>
-  );
-}
-
-function AIAssistantContent() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, []);
-  if (loading) {
-    return (
-      <div className="space-y-2">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-muted h-8 rounded"></div>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-start">
-        <div className="bg-muted px-3 py-1 rounded-lg">How do I add a new patient?</div>
-      </div>
-      <div className="flex justify-end">
-        <div className="bg-primary text-primary-foreground px-3 py-1 rounded-lg">
-          Click on the &apos;Patient Records&apos; tab and then &apos;Add Record&apos;.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AgenticSimulation({ messages }: { messages: { sender: string; text: string }[] }) {
-  const [displayed, setDisplayed] = useState<{ sender: string; text: string; type?: "thinking" | "tool" | "message" }[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isThinking, setIsThinking] = useState(false);
-  const [isCallingTool, setIsCallingTool] = useState(false);
-  const [toolName, setToolName] = useState("");
-  
-  useEffect(() => {
-    setDisplayed([]);
-    
-    const sequence = [
-      // Initial message
-      () => {
-        setDisplayed([{
-          sender: 'User',
-          text: messages[0].text,
-          type: "message"
-        }]);
-        setCurrentStep(1);
-        setIsThinking(true);
-        return 800;
-      },
-      
-      // Agent thinking
-      () => {
-        setIsThinking(false);
-        setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
-          text: "Searching for insurance options...",
-          type: "thinking"
-        }]);
-        setIsCallingTool(true);
-        setToolName("search_database");
-        return 1500;
-      },
-      
-      // Tool calling
-      () => {
-        setIsCallingTool(false);
-        setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
-          text: `I found 3 insurance plans matching "${messages[0].text}".`,
-          type: "message"
-        }]);
-        setCurrentStep(2);
-        setIsThinking(true);
-        return 1200;
-      },
-      
-      // Agent thinking again
-      () => {
-        setIsThinking(false);
-        setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
-          text: "Analyzing plan benefits and eligibility requirements...",
-          type: "thinking"
-        }]);
-        setIsCallingTool(true);
-        setToolName("analyze_plans");
-        return 1800;
-      },
-      
-      // More advanced response
-      () => {
-        setIsCallingTool(false);
-        setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
-          text: "Based on your search, I recommend HealthShield Gold Plan with comprehensive coverage.",
-          type: "message"
-        }]);
-        setCurrentStep(3);
-        return 1000;
-      },
-      
-      // User interaction simulation
-      () => {
-        setDisplayed(prev => [...prev, {
-          sender: 'User',
-          text: "How can I apply?",
-          type: "message"
-        }]);
-        setCurrentStep(4);
-        setIsThinking(true);
-        return 800;
-      },
-      
-      // Final agent response
-      () => {
-        setIsThinking(false);
-        setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
-          text: "I can help you fill out an application right now. Would you like me to auto-fill the form for you?",
-          type: "message"
-        }]);
-        setIsCallingTool(true);
-        setToolName("form_assistant");
-        return 1000;
-      },
-      
-      // End sequence
-      () => {
-        setIsCallingTool(false);
-        return 0;
-      }
-    ];
-    
-    let timeoutId: NodeJS.Timeout;
-    const runSequence = (index: number) => {
-      if (index < sequence.length) {
-        const delay = sequence[index]();
-        if (delay > 0) {
-          timeoutId = setTimeout(() => runSequence(index + 1), delay);
-        }
-      }
-    };
-    
-    runSequence(0);
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [messages]);
-
-  return (
-    <div className="mt-6 w-full max-w-md mx-auto bg-card rounded-lg shadow-lg overflow-hidden">
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="font-medium">ErachI Assistant</span>
-        </div>
-        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-          {isCallingTool ? "Running tools" : "Active"}
-        </div>
-      </div>
-      
-      <div className="p-4 h-64 overflow-y-auto">
-        {displayed.map((msg, idx) => (
-          <div key={idx} className={`mb-3 ${msg.sender === 'User' ? 'flex justify-end' : 'flex justify-start'}`}>
-            <div className={cn(
-              "max-w-[85%] rounded-2xl px-3 py-2",
-              msg.sender === 'User' 
-                ? "bg-primary text-primary-foreground rounded-tr-none" 
-                : msg.type === "thinking"
-                  ? "bg-blue-50 text-blue-700 border border-blue-100"
-                  : "bg-muted text-foreground rounded-tl-none"
-            )}>
-              {msg.type === "thinking" && (
-                <div className="flex items-center space-x-2 text-xs">
-                  <span className="animate-pulse">🔄</span>
-                  <span>{msg.text}</span>
-                </div>
-              )}
-              
-              {msg.type === "message" && (
-                <div>{msg.text}</div>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {isThinking && (
-          <div className="flex justify-start mb-3">
-            <div className="bg-muted rounded-2xl rounded-tl-none px-4 py-2">
-              <div className="flex space-x-1 items-center">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "100ms" }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "200ms" }}></div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {isCallingTool && (
-          <div className="flex justify-start mb-3">
-            <div className="bg-blue-50 text-blue-700 border border-blue-100 rounded-lg px-3 py-2 text-xs">
-              <div className="flex items-center space-x-2 mb-1">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="font-medium">Calling tool: {toolName}</span>
-              </div>
-              <code className="bg-white p-1 rounded text-xs block">
-                {toolName === "search_database" && (
-                  <span className="opacity-70">search_insurance_database(query: &quot;{messages[0].text}&quot;, location: &quot;user_region&quot;, plan_type: &quot;health&quot;)</span>
-                )}
-                {toolName === "analyze_plans" && (
-                  <span className="opacity-70">analyze_plan_options(user_profile: &quot;current&quot;, affordability_index: 0.7, coverage_priority: &quot;comprehensive&quot;)</span>
-                )}
-                {toolName === "form_assistant" && (
-                  <span className="opacity-70">prepare_form_assistant(form_type: &quot;insurance_application&quot;, mode: &quot;auto_fill&quot;, data_source: &quot;user_profile&quot;)</span>
-                )}
-              </code>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      <div className="border-t border-border p-3 flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">
-          {currentStep < 7 && `Step ${currentStep}/7: ${isCallingTool ? `Running ${toolName}` : "Processing..."}`}
-          {currentStep >= 7 && "Redirecting to application form..."}
-        </div>
-        <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-500 transition-all duration-300 ease-in-out"
-            style={{ width: `${(currentStep / 7) * 100}%` }}
-          ></div>
         </div>
       </div>
     </div>
