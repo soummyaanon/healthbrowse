@@ -234,7 +234,6 @@ export default function BrowserShell() {
   };
   
   // When clicking on a browser tab, update the history
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
     if (activeTab && activeTab.url) {
@@ -252,7 +251,7 @@ export default function BrowserShell() {
         setHistoryIndex(historyIndex + 1);
       }
     }
-  }, [activeBrowserTab]);
+  }, [activeBrowserTab, browserTabs, history, historyIndex]);
 
   // Handle tab selection in the sidebar
   const handleTabChange = (tab: Tab) => {
@@ -499,6 +498,18 @@ export default function BrowserShell() {
                         Refresh
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Audit logs display (collapsed by default) */}
+                  <div className="mb-4 bg-muted/30 rounded-md p-2">
+                    <details>
+                      <summary className="text-sm font-medium cursor-pointer">System Logs ({auditLogs.length})</summary>
+                      <div className="mt-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                        {auditLogs.map((log, index) => (
+                          <div key={index} className="py-0.5">{log}</div>
+                        ))}
+                      </div>
+                    </details>
                   </div>
 
                   <div className="bg-card rounded-lg shadow overflow-hidden">
