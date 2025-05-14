@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, Plus, Stethoscope } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
@@ -149,8 +149,7 @@ export default function BrowserShell() {
   };
   
   const activateXenScribe = () => {
-    setConsultMode(true);
-    setActiveTab("Home");
+    // XenScribe tool activation
     setXenScribeReady(true);
     setAuditLogs(prev => [
       ...prev,
@@ -159,11 +158,34 @@ export default function BrowserShell() {
     ]);
     
     // Set XenScribe browser tab as active
-    const xenScribeTab = browserTabs.find(tab => tab.title === 'XenScribe');
+    let xenScribeTab = browserTabs.find(tab => tab.title === 'XenScribe');
     if (xenScribeTab) {
       setActiveBrowserTab(xenScribeTab.id);
-      updateAddressBar(xenScribeTab.url);
+    } else {
+      // Create a new XenScribe tab if it doesn't exist
+      const newTabId = (browserTabs.length + 1).toString();
+      const newXenScribeTab: BrowserTab = {
+        id: newTabId,
+        title: 'XenScribe',
+        url: 'https://wujihealth.com/xenscribe',
+        favicon: '/favicon.ico'
+      };
+      xenScribeTab = newXenScribeTab;
+      setBrowserTabs([...browserTabs, newXenScribeTab]);
+      setActiveBrowserTab(newTabId);
+    }
+    
+    // Update address bar
+    updateAddressBar(xenScribeTab.url);
+    
+    // Separately handle consult mode activation
+    if (!consultMode) {
+      setConsultMode(true);
       setActiveContent('consult');
+      setAuditLogs(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] System: Clinical Consult Mode activated`
+      ]);
     }
   };
   
@@ -216,22 +238,47 @@ export default function BrowserShell() {
   };
   
   // Update content based on URL
-  const updateContentBasedOnUrl = (url: string) => {
+  const updateContentBasedOnUrl = useCallback((url: string) => {
     if (url.includes('xenscribe')) {
-      setActiveContent('consult');
-      setConsultMode(true);
+      // XenScribe tab loaded - this doesn't necessarily mean consult mode
+      if (!xenScribeReady) {
+        setXenScribeReady(true);
+        setAuditLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] System: XenScribe loaded and ready`
+        ]);
+      }
+      
+      // Only change to consult mode if explicitly requested
+      if (consultMode) {
+        setActiveContent('consult');
+        setAuditLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Navigation: Clinical consult mode active`
+        ]);
+      } else {
+        // Otherwise just show XenScribe home content
+        setActiveContent('home');
+        setAuditLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] Navigation: XenScribe tab loaded`
+        ]);
+      }
     } else if (url.includes('records')) {
       setActiveContent('patientRecords');
+      // Keep consult mode state unchanged - switching tabs doesn't affect consult mode
     } else if (url.includes('search')) {
       setActiveContent('insurance');
+      // Keep consult mode state unchanged
     } else if (url.includes('agents')) {
       setActiveContent('agents');
       setActiveTab("Agents");
+      // Keep consult mode state unchanged
     } else {
       setActiveContent('home');
-      setConsultMode(false);
+      // Keep consult mode state unchanged
     }
-  };
+  }, [xenScribeReady, consultMode, setActiveTab]);
   
   // When clicking on a browser tab, update the history
   useEffect(() => {
@@ -251,19 +298,26 @@ export default function BrowserShell() {
         setHistoryIndex(historyIndex + 1);
       }
     }
-  }, [activeBrowserTab, browserTabs, history, historyIndex]);
+  }, [activeBrowserTab, browserTabs, history, historyIndex, updateContentBasedOnUrl]);
 
   // Handle tab selection in the sidebar
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     
-    // Update browser tab based on sidebar selection
+    // Handle active tab selection
     if (tab === "Home") {
+      // First check if we need to show consult content
+      if (consultMode) {
+        setActiveContent('consult');
+      }
+      
+      // Find the appropriate tab to show
       const homeTab = browserTabs.find(tab => tab.url.includes('dashboard'));
       if (homeTab) {
         setActiveBrowserTab(homeTab.id);
+        updateAddressBar(homeTab.url);
+        // Don't set activeContent here, as we want to respect consult mode
       }
-      setConsultMode(false);
     } else if (tab === "Agents") {
       // Check if we have an agents tab already
       let agentsTab = browserTabs.find(tab => tab.url.includes('agents'));
@@ -281,6 +335,8 @@ export default function BrowserShell() {
       } else {
         setActiveBrowserTab(agentsTab.id);
       }
+      updateAddressBar(agentsTab.url);
+      setActiveContent('agents');
     } else if (tab === "Insurance") {
       // Check if we have an insurance tab already
       let insuranceTab = browserTabs.find(tab => tab.url.includes('insurance'));
@@ -298,6 +354,8 @@ export default function BrowserShell() {
       } else {
         setActiveBrowserTab(insuranceTab.id);
       }
+      updateAddressBar(insuranceTab.url);
+      setActiveContent('insurance');
     }
   };
 
@@ -407,17 +465,38 @@ export default function BrowserShell() {
               <ShieldCheck className="w-3 h-3 mr-1" />
               <span>Secure</span>
             </div>
-            {xenScribeReady && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={activateXenScribe}
-                className="text-blue-500 border-blue-200 hover:bg-blue-50"
-              >
-                <FileText className="h-4 w-4 mr-1.5" />
-                XenScribe
-              </Button>
-            )}
+            <div className="flex items-center space-x-2">
+              {xenScribeReady && (
+                <Button 
+                  variant="outline"
+                  size="sm" 
+                  onClick={activateXenScribe}
+                  className="text-blue-500 border-blue-200 hover:bg-blue-50"
+                >
+                  <FileText className="h-4 w-4 mr-1.5" />
+                  XenScribe
+                </Button>
+              )}
+              
+              {/* Separate button for consult mode */}
+              {consultMode && (
+                <Button 
+                  variant="default"
+                  size="sm" 
+                  onClick={() => {
+                    setActiveContent(consultMode ? 'consult' : 'home');
+                    setAuditLogs(prev => [
+                      ...prev,
+                      `[${new Date().toLocaleTimeString()}] System: Clinical Consult interface activated`
+                    ]);
+                  }}
+                  className="bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <Stethoscope className="h-4 w-4 mr-1.5" />
+                  Consult Mode
+                </Button>
+              )}
+            </div>
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <Settings className="h-5 w-5" />
             </Button>
@@ -453,7 +532,7 @@ export default function BrowserShell() {
               {/* Clinical consult content */}
               {activeContent === 'consult' && (
                 <div className="flex flex-col items-center justify-center h-full w-full">
-                  <div className="w-full max-w-4xl mx-auto flex-1">
+                  <div className="w-full max-w-5xl mx-auto flex-1">
                     <Suspense fallback={
                       <div className="flex flex-col items-center justify-center h-full">
                         <div className="animate-pulse flex flex-col items-center gap-3">

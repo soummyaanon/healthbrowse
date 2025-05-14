@@ -664,174 +664,197 @@ function ClinicalAgentChat() {
   );
 
   return (
-    <div className="flex flex-col w-full h-full max-w-5xl mx-auto">
-      {/* Header and input section */}
-      <div className="flex flex-col items-center mb-8 pt-8">
+    <div className="w-full h-full max-w-7xl mx-auto">
+      {/* Header with title */}
+      <div className="flex justify-center py-4 border-b mb-4">
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex items-center gap-2 text-2xl font-bold mb-6"
+          className="flex items-center gap-2 text-2xl font-bold"
         >
           <Bot className="text-blue-600" size={28} />
           <h1>Clinical Consult</h1>
         </motion.div>
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-2xl"
-        >
-          <AIInput_04 
-            onSubmit={handleUserSubmit} 
-            ref={aiInputRef}
-            value={inputValue}
-            onChange={setInputValue}
-          />
-          
-          {/* Quick suggestion categories always visible with separators */}
-          <motion.div 
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center mt-4 border-t border-gray-200 pt-4"
-          >
-            {SUGGESTION_CATEGORIES.map((category, idx) => (
-              <Fragment key={idx}>
-                <QuickSuggestion 
-                  icon={category.icon}
-                  title={category.title}
-                  questions={category.questions}
-                  index={idx}
-                />
-                {idx < SUGGESTION_CATEGORIES.length - 1 && (
-                  <div className="h-6 w-px bg-gray-300 mx-2" />
-                )}
-              </Fragment>
-            ))}
-          </motion.div>
-        </motion.div>
       </div>
 
-      {/* Conversation section - only shown after submitting a query */}
-      {messages.length > 1 && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="flex-1 overflow-y-auto px-4 py-6 mb-4 border rounded-lg bg-card max-w-4xl mx-auto w-full shadow-sm"
-        >
-          <div className="space-y-6">
-            <AnimatePresence>
-              {messages.map((msg, i) => (
-                // Skip the initial welcome message
-                i > 0 && (
+      {/* Main two-column layout */}
+      <div className="flex flex-col lg:flex-row h-[calc(100%-4rem)] gap-6 px-4">
+        {/* Left column - Input and user messages */}
+        <div className={`${messages.length > 1 ? 'w-full lg:w-1/4' : 'w-full'} flex flex-col h-full`}>
+          {/* Input area */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="w-full mb-4"
+          >
+            <AIInput_04 
+              onSubmit={handleUserSubmit} 
+              ref={aiInputRef}
+              value={inputValue}
+              onChange={setInputValue}
+            />
+            
+            {/* Quick suggestion categories */}
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              className="flex flex-wrap items-center justify-start mt-4 border-t border-gray-200 pt-4 gap-2"
+            >
+              {SUGGESTION_CATEGORIES.map((category, idx) => (
+                <Fragment key={idx}>
+                  <QuickSuggestion 
+                    icon={category.icon}
+                    title={category.title}
+                    questions={category.questions}
+                    index={idx}
+                  />
+                </Fragment>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* User messages section */}
+          {messages.length > 1 && (
+            <div className="flex-1 overflow-y-auto border rounded-lg p-3 bg-gray-50 max-h-[calc(100vh-320px)]">
+              <h3 className="text-sm font-medium mb-3 text-gray-700">Conversation History</h3>
+              <div className="space-y-3">
+                {messages.filter(msg => msg.sender === "user").map((msg, i) => (
                   <motion.div 
                     key={i} 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: i * 0.1 }}
-                    className={cn(
-                      "flex",
-                      msg.sender === "user" ? "justify-end" : "justify-start"
-                    )}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-primary text-primary-foreground rounded-lg p-3 text-sm"
                   >
-                    <div className={cn(
-                      "rounded-2xl px-4 py-3 max-w-[85%]",
-                      msg.sender === "user"
-                        ? "bg-primary text-primary-foreground rounded-tr-none"
-                        : msg.thinking
+                    {msg.text}
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right column - Agent response area - only show when there are messages */}
+        {messages.length > 1 && (
+          <div className="w-full lg:w-3/4 flex flex-col h-full overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="flex-1 overflow-y-auto px-6 py-6 border rounded-lg bg-card w-full shadow-sm max-h-[calc(100vh-120px)]"
+            >
+              <div className="space-y-6">
+                <AnimatePresence>
+                  {messages.filter(msg => msg.sender === "agent").map((msg, i) => (
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: i * 0.1 }}
+                      className="flex justify-start"
+                    >
+                      <div className={cn(
+                        "rounded-2xl px-4 py-3 max-w-[90%]",
+                        msg.thinking
                           ? "bg-blue-50 text-blue-700 border border-blue-100"
                           : msg.tool
                             ? "bg-blue-50 text-blue-700 border border-blue-100"
                             : "bg-muted text-foreground rounded-tl-none"
-                    )}>
-                      {msg.thinking && (
-                        <span className="flex items-center gap-2">
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Loader2 size={16} />
-                          </motion.div>
-                          {msg.text}
-                        </span>
-                      )}
-                      {msg.tool && (
-                        <span className="flex items-center gap-2 text-xs text-blue-700">
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Loader2 size={14} />
-                          </motion.div>
-                          {msg.text}
-                        </span>
-                      )}
-                      {!msg.thinking && !msg.tool && (
-                        <div className="whitespace-pre-line text-sm">{msg.text}</div>
-                      )}
+                      )}>
+                        {msg.thinking && (
+                          <span className="flex items-center gap-2">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            >
+                              <Loader2 size={16} />
+                            </motion.div>
+                            {msg.text}
+                          </span>
+                        )}
+                        {msg.tool && (
+                          <span className="flex items-center gap-2 text-xs text-blue-700">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            >
+                              <Loader2 size={14} />
+                            </motion.div>
+                            {msg.text}
+                          </span>
+                        )}
+                        {!msg.thinking && !msg.tool && (
+                          <div className="whitespace-pre-line text-sm">{msg.text}</div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {/* Chart display when available */}
+                {chartData && (
+                  <SimpleChart data={chartData} />
+                )}
+
+                {/* Loading state when waiting for response */}
+                {loading && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-4 p-4 bg-blue-50 rounded-lg"
+                  >
+                    <LoadingShimmer />
+                  </motion.div>
+                )}
+
+                {/* References and followups with cards */}
+                {lastQA && !loading && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="mt-6 border-t border-border pt-4"
+                  >
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* References Card */}
+                      <div className="md:col-span-2">
+                        <ResponseCardGroup 
+                          title="References" 
+                          icon={<BookOpen size={16} />} 
+                          items={lastQA.links} 
+                          isLink={true}
+                        />
+                      </div>
+                      
+                      {/* Follow-up Questions Card */}
+                      <ResponseCardGroup 
+                        title="Follow-up Questions" 
+                        icon={<StethoscopeIcon size={16} />} 
+                        items={lastQA.followups} 
+                        onClick={handleSuggestionClick}
+                      />
+                      
+                      {/* Related Topics Card */}
+                      <ResponseCardGroup 
+                        title="Related Topics" 
+                        icon={<SearchIcon size={16} />} 
+                        items={Object.keys(QA_MAP)
+                          .slice(0, 6)
+                          .filter(key => key !== messages[messages.length - 2]?.text)}
+                        onClick={handleSuggestionClick}
+                      />
                     </div>
                   </motion.div>
-                )
-              ))}
-            </AnimatePresence>
-
-            {/* Chart display when available */}
-            {chartData && (
-              <SimpleChart data={chartData} />
-            )}
-
-            {/* Loading state when waiting for response */}
-            {loading && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="mt-4 p-4 bg-blue-50 rounded-lg"
-              >
-                <LoadingShimmer />
-              </motion.div>
-            )}
-
-            {/* References and followups with cards instead of accordion */}
-            {lastQA && !loading && (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="mt-6 border-t border-border pt-4"
-              >
-                {/* References Card */}
-                <ResponseCardGroup 
-                  title="References" 
-                  icon={<BookOpen size={16} />} 
-                  items={lastQA.links} 
-                  isLink={true}
-                />
-                
-                {/* Follow-up Questions Card */}
-                <ResponseCardGroup 
-                  title="Follow-up Questions" 
-                  icon={<StethoscopeIcon size={16} />} 
-                  items={lastQA.followups} 
-                  onClick={handleSuggestionClick}
-                />
-                
-                {/* Related Topics Card */}
-                <ResponseCardGroup 
-                  title="Related Topics" 
-                  icon={<SearchIcon size={16} />} 
-                  items={Object.keys(QA_MAP)
-                    .slice(0, 6)
-                    .filter(key => key !== messages[messages.length - 2]?.text)}
-                  onClick={handleSuggestionClick}
-                />
-              </motion.div>
-            )}
+                )}
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
