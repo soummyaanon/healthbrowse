@@ -41,6 +41,10 @@ export default function BrowserShell() {
     `[${new Date().toLocaleTimeString()}] System: AI agents loaded successfully`
   ]);
   
+  // Browser history state
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  
   // Browser tabs state
   const [browserTabs, setBrowserTabs] = useState<BrowserTab[]>([
     { id: '1', title: 'WujiHealth', url: 'https://wujihealth.com/dashboard', favicon: '/favicon.ico' },
@@ -49,6 +53,64 @@ export default function BrowserShell() {
   ]);
   const [activeBrowserTab, setActiveBrowserTab] = useState<string>('1');
   const [activeContent, setActiveContent] = useState<string>('home');
+
+  // Handle browser back navigation
+  const handleBack = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      const url = history[newIndex];
+      
+      // Find tab with matching URL or create a new one
+      const tabWithUrl = browserTabs.find(tab => tab.url === url);
+      if (tabWithUrl) {
+        setActiveBrowserTab(tabWithUrl.id);
+        updateAddressBar(url);
+        updateContentBasedOnUrl(url);
+      }
+      
+      setAuditLogs(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Navigation: Moved back to ${url}`
+      ]);
+    }
+  };
+
+  // Handle browser forward navigation
+  const handleForward = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      const url = history[newIndex];
+      
+      // Find tab with matching URL or create a new one
+      const tabWithUrl = browserTabs.find(tab => tab.url === url);
+      if (tabWithUrl) {
+        setActiveBrowserTab(tabWithUrl.id);
+        updateAddressBar(url);
+        updateContentBasedOnUrl(url);
+      }
+      
+      setAuditLogs(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Navigation: Moved forward to ${url}`
+      ]);
+    }
+  };
+
+  // Handle browser refresh
+  const handleRefresh = () => {
+    const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
+    if (activeTab) {
+      // Simulate page reload by resetting content based on current URL
+      updateContentBasedOnUrl(activeTab.url);
+      
+      setAuditLogs(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] Navigation: Refreshed ${activeTab.url}`
+      ]);
+    }
+  };
 
   const handleSearch = (query: string) => {
     const msgs = [
@@ -74,6 +136,16 @@ export default function BrowserShell() {
     setActiveBrowserTab(newTabId);
     updateAddressBar(`https://wujihealth.com/search?q=${encodeURIComponent(query)}`);
     setActiveContent('insurance');
+    
+    // Add the new URL to history
+    const newUrl = `https://wujihealth.com/search?q=${encodeURIComponent(query)}`;
+    if (historyIndex < history.length - 1) {
+      // If we're in the middle of history, truncate forward history
+      setHistory([...history.slice(0, historyIndex + 1), newUrl]);
+    } else {
+      setHistory([...history, newUrl]);
+    }
+    setHistoryIndex(history.length);
   };
   
   const activateXenScribe = () => {
@@ -108,6 +180,16 @@ export default function BrowserShell() {
     setActiveBrowserTab(newTabId);
     updateAddressBar(newTab.url);
     setActiveContent('home');
+    
+    // Add the new URL to history
+    const newUrl = 'https://wujihealth.com/newtab';
+    if (historyIndex < history.length - 1) {
+      // If we're in the middle of history, truncate forward history
+      setHistory([...history.slice(0, historyIndex + 1), newUrl]);
+    } else {
+      setHistory([...history, newUrl]);
+    }
+    setHistoryIndex(history.length);
   };
   
   // Function to close a browser tab
@@ -151,14 +233,22 @@ export default function BrowserShell() {
     }
   };
   
-  // When clicking on a browser tab, update the address bar and content
+  // When clicking on a browser tab, update the history
   useEffect(() => {
     const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
-    if (activeTab) {
-      updateAddressBar(activeTab.url);
-      updateContentBasedOnUrl(activeTab.url);
+    if (activeTab && activeTab.url) {
+      // Add the URL to history if it's not already the current one
+      if (historyIndex === -1 || (historyIndex >= 0 && history[historyIndex] !== activeTab.url)) {
+        if (historyIndex < history.length - 1) {
+          // If we're in the middle of history, truncate forward history
+          setHistory([...history.slice(0, historyIndex + 1), activeTab.url]);
+        } else {
+          setHistory([...history, activeTab.url]);
+        }
+        setHistoryIndex(historyIndex + 1);
+      }
     }
-  }, [activeBrowserTab, browserTabs]);
+  }, [activeBrowserTab]);
 
   // Handle tab selection in the sidebar
   const handleTabChange = (tab: Tab) => {
@@ -261,9 +351,29 @@ export default function BrowserShell() {
         {/* Navigation and address bar row */}
         <div className="flex items-center px-4 py-2">
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon"><ChevronLeft /></Button>
-            <Button variant="ghost" size="icon"><ChevronRight /></Button>
-            <Button variant="ghost" size="icon"><RefreshCw /></Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleBack} 
+              disabled={historyIndex <= 0}
+            >
+              <ChevronLeft />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleForward} 
+              disabled={historyIndex >= history.length - 1}
+            >
+              <ChevronRight />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRefresh}
+            >
+              <RefreshCw />
+            </Button>
           </div>
           <div className="flex items-center mr-4 ml-2">
             <div className="flex items-center">
