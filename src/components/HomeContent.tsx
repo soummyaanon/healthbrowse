@@ -27,10 +27,10 @@ export default function HomeContent({
   handleSearch, 
   simulationMessages, 
   setActiveTab, 
-
+  setAgentWorking,
   setConsultMode,
   setXenScribeReady,
-
+  auditLogs,
   setAuditLogs
 }: HomeContentProps) {
   const [loading, setLoading] = useState(true);

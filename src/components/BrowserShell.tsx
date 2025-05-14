@@ -237,6 +237,9 @@ export default function BrowserShell() {
   useEffect(() => {
     const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
     if (activeTab && activeTab.url) {
+      // Update content based on the URL when tab changes
+      updateContentBasedOnUrl(activeTab.url);
+      
       // Add the URL to history if it's not already the current one
       if (historyIndex === -1 || (historyIndex >= 0 && history[historyIndex] !== activeTab.url)) {
         if (historyIndex < history.length - 1) {
@@ -315,7 +318,11 @@ export default function BrowserShell() {
             {browserTabs.map((tab) => (
               <div 
                 key={tab.id}
-                onClick={() => setActiveBrowserTab(tab.id)}
+                onClick={() => {
+                  setActiveBrowserTab(tab.id);
+                  updateAddressBar(tab.url);
+                  updateContentBasedOnUrl(tab.url);
+                }}
                 className={cn(
                   "flex items-center space-x-1 py-1.5 px-3 rounded-t-md cursor-pointer min-w-[120px] max-w-[200px] transition-colors group",
                   activeBrowserTab === tab.id 
