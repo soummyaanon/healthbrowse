@@ -404,14 +404,14 @@ export default function AgentsDashboard() {
     analyzeCurrentContext();
   }, []);
 
-  // Total metrics across all agents (for dashboard)
-  const totalTasks = Object.values(agentInfo)
-    .filter(agent => 'usage' in agent)
-    .reduce((sum, agent) => sum + (agent.usage?.tasks || 0), 0);
+  // // Total metrics across all agents (for dashboard)
+  // const totalTasks = Object.values(agentInfo)
+  //   .filter(agent => 'usage' in agent)
+  //   .reduce((sum, agent) => sum + (agent.usage?.tasks || 0), 0);
   
-  const totalUsers = Object.values(agentInfo)
-    .filter(agent => 'usage' in agent)
-    .reduce((sum, agent) => sum + (agent.usage?.users || 0), 0);
+  // const totalUsers = Object.values(agentInfo)
+  //   .filter(agent => 'usage' in agent)
+  //   .reduce((sum, agent) => sum + (agent.usage?.users || 0), 0);
 
   // Get current chart data based on selected time period
   const performanceChartData: ChartData = {
