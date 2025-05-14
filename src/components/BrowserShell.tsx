@@ -3,9 +3,10 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, Plus } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 import Sidebar from "@/components/Sidebar";
 import { Tab } from "@/components/types";
@@ -19,6 +20,14 @@ const AgentsDashboard = lazy(() => import("@/components/AgentsDashboard"));
 
 const tabs: Tab[] = ["Home", "Agents", "Insurance"];
 
+// Browser tab interface
+interface BrowserTab {
+  id: string;
+  title: string;
+  url: string;
+  favicon?: string;
+}
+
 export default function BrowserShell() {
   const [activeTab, setActiveTab] = useState<Tab>("Home");
   const [showAIWidget, setShowAIWidget] = useState(false);
@@ -31,6 +40,15 @@ export default function BrowserShell() {
     `[${new Date().toLocaleTimeString()}] System: WujiHealth Browser initialized`,
     `[${new Date().toLocaleTimeString()}] System: AI agents loaded successfully`
   ]);
+  
+  // Browser tabs state
+  const [browserTabs, setBrowserTabs] = useState<BrowserTab[]>([
+    { id: '1', title: 'WujiHealth', url: 'https://wujihealth.com/dashboard', favicon: '/favicon.ico' },
+    { id: '2', title: 'Patient Records', url: 'https://ehr.wujihealth.com/records', favicon: '/favicon.ico' },
+    { id: '3', title: 'XenScribe', url: 'https://wujihealth.com/xenscribe', favicon: '/favicon.ico' },
+  ]);
+  const [activeBrowserTab, setActiveBrowserTab] = useState<string>('1');
+  const [activeContent, setActiveContent] = useState<string>('home');
 
   const handleSearch = (query: string) => {
     const msgs = [
@@ -44,6 +62,18 @@ export default function BrowserShell() {
     setConsultMode(false);
     setActiveTab("Home");
     setTimeout(() => setActiveTab("Insurance"), (msgs.length + 1) * 1000);
+    
+    // Add a new browser tab with the search query
+    const newTabId = (browserTabs.length + 1).toString();
+    setBrowserTabs([...browserTabs, {
+      id: newTabId,
+      title: `Search: ${query}`,
+      url: `https://wujihealth.com/search?q=${encodeURIComponent(query)}`,
+      favicon: '/favicon.ico'
+    }]);
+    setActiveBrowserTab(newTabId);
+    updateAddressBar(`https://wujihealth.com/search?q=${encodeURIComponent(query)}`);
+    setActiveContent('insurance');
   };
   
   const activateXenScribe = () => {
@@ -55,76 +85,248 @@ export default function BrowserShell() {
       `[${new Date().toLocaleTimeString()}] System: XenScribe activated`,
       `[${new Date().toLocaleTimeString()}] XenScribe: Ready to assist with documentation`
     ]);
+    
+    // Set XenScribe browser tab as active
+    const xenScribeTab = browserTabs.find(tab => tab.title === 'XenScribe');
+    if (xenScribeTab) {
+      setActiveBrowserTab(xenScribeTab.id);
+      updateAddressBar(xenScribeTab.url);
+      setActiveContent('consult');
+    }
+  };
+  
+  // Function to add a new browser tab
+  const addNewBrowserTab = () => {
+    const newTabId = (browserTabs.length + 1).toString();
+    const newTab = {
+      id: newTabId,
+      title: 'New Tab',
+      url: 'https://wujihealth.com/newtab',
+      favicon: '/favicon.ico'
+    };
+    setBrowserTabs([...browserTabs, newTab]);
+    setActiveBrowserTab(newTabId);
+    updateAddressBar(newTab.url);
+    setActiveContent('home');
+  };
+  
+  // Function to close a browser tab
+  const closeBrowserTab = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (browserTabs.length <= 1) return; // Don't close last tab
+    
+    const newTabs = browserTabs.filter(tab => tab.id !== id);
+    setBrowserTabs(newTabs);
+    
+    // If the active tab was closed, set the last tab as active
+    if (activeBrowserTab === id) {
+      const lastTab = newTabs[newTabs.length - 1];
+      setActiveBrowserTab(lastTab.id);
+      updateAddressBar(lastTab.url);
+      // Update content based on the tab URL
+      updateContentBasedOnUrl(lastTab.url);
+    }
+  };
+  
+  // Update the address bar when changing tabs
+  const updateAddressBar = (url: string) => {
+    setSearchQuery(url);
+  };
+  
+  // Update content based on URL
+  const updateContentBasedOnUrl = (url: string) => {
+    if (url.includes('xenscribe')) {
+      setActiveContent('consult');
+      setConsultMode(true);
+    } else if (url.includes('records')) {
+      setActiveContent('patientRecords');
+    } else if (url.includes('search')) {
+      setActiveContent('insurance');
+    } else if (url.includes('agents')) {
+      setActiveContent('agents');
+      setActiveTab("Agents");
+    } else {
+      setActiveContent('home');
+      setConsultMode(false);
+    }
+  };
+  
+  // When clicking on a browser tab, update the address bar and content
+  useEffect(() => {
+    const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
+    if (activeTab) {
+      updateAddressBar(activeTab.url);
+      updateContentBasedOnUrl(activeTab.url);
+    }
+  }, [activeBrowserTab, browserTabs]);
+
+  // Handle tab selection in the sidebar
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    
+    // Update browser tab based on sidebar selection
+    if (tab === "Home") {
+      const homeTab = browserTabs.find(tab => tab.url.includes('dashboard'));
+      if (homeTab) {
+        setActiveBrowserTab(homeTab.id);
+      }
+      setConsultMode(false);
+    } else if (tab === "Agents") {
+      // Check if we have an agents tab already
+      let agentsTab = browserTabs.find(tab => tab.url.includes('agents'));
+      if (!agentsTab) {
+        // Create a new agents tab
+        const newTabId = (browserTabs.length + 1).toString();
+        agentsTab = {
+          id: newTabId,
+          title: 'AI Agents',
+          url: 'https://wujihealth.com/agents',
+          favicon: '/favicon.ico'
+        };
+        setBrowserTabs([...browserTabs, agentsTab]);
+        setActiveBrowserTab(newTabId);
+      } else {
+        setActiveBrowserTab(agentsTab.id);
+      }
+    } else if (tab === "Insurance") {
+      // Check if we have an insurance tab already
+      let insuranceTab = browserTabs.find(tab => tab.url.includes('insurance'));
+      if (!insuranceTab) {
+        // Create a new insurance tab
+        const newTabId = (browserTabs.length + 1).toString();
+        insuranceTab = {
+          id: newTabId,
+          title: 'Insurance',
+          url: 'https://wujihealth.com/insurance',
+          favicon: '/favicon.ico'
+        };
+        setBrowserTabs([...browserTabs, insuranceTab]);
+        setActiveBrowserTab(newTabId);
+      } else {
+        setActiveBrowserTab(insuranceTab.id);
+      }
+    }
+  };
+
+  // Create a wrapper function with the correct type
+  const handleSetActiveTab: React.Dispatch<React.SetStateAction<Tab>> = (value) => {
+    // If it's a function, call it with the current activeTab
+    const newTab = typeof value === 'function' ? value(activeTab) : value;
+    // Then call our handler with the new value
+    handleTabChange(newTab);
   };
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="flex items-center px-4 py-2 border-b border-border bg-card shadow-sm">
-        <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon"><ChevronLeft /></Button>
-          <Button variant="ghost" size="icon"><ChevronRight /></Button>
-          <Button variant="ghost" size="icon"><RefreshCw /></Button>
-        </div>
-        <div className="flex items-center mr-4 ml-2">
-          <div className="flex items-center">
-
-          </div>
-        </div>
-        <div className="flex flex-1 px-2">
-          <Input
-            type="text"
-            className="flex-1 bg-background text-foreground placeholder:text-muted-foreground border border-input px-3 py-1 rounded-md focus:outline-none"
-            placeholder="Search or enter address"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchQuery.trim()) {
-                handleSearch(searchQuery.trim());
-                setSearchQuery('');
-              }
-            }}
-          />
-        </div>
-        <div className="flex items-center space-x-3 ml-2">
-          <div className="flex items-center text-xs bg-green-500 text-white px-2 py-1 rounded-full">
-            <ShieldCheck className="w-3 h-3 mr-1" />
-            <span>Secure</span>
-          </div>
-          {xenScribeReady && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={activateXenScribe}
-              className="text-blue-500 border-blue-200 hover:bg-blue-50"
+      <header className="flex flex-col border-b border-border bg-card shadow-sm">
+        {/* Browser tabs row */}
+        <div className="flex items-center px-2 py-1 border-b border-border">
+          <div className="flex-1 flex items-center space-x-1 overflow-x-auto scrollbar-hide">
+            {browserTabs.map((tab) => (
+              <div 
+                key={tab.id}
+                onClick={() => setActiveBrowserTab(tab.id)}
+                className={cn(
+                  "flex items-center space-x-1 py-1.5 px-3 rounded-t-md cursor-pointer min-w-[120px] max-w-[200px] transition-colors group",
+                  activeBrowserTab === tab.id 
+                    ? "bg-background" 
+                    : "bg-card hover:bg-background/50"
+                )}
+              >
+                {tab.favicon && (
+                  <div className="w-4 h-4 flex-shrink-0">
+                    <Image src={tab.favicon} alt="" width={16} height={16} />
+                  </div>
+                )}
+                <span className="truncate text-sm">{tab.title}</span>
+                {browserTabs.length > 1 && (
+                  <button 
+                    onClick={(e) => closeBrowserTab(tab.id, e)}
+                    className="opacity-0 group-hover:opacity-100 hover:bg-muted rounded-full p-0.5"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+            <button 
+              onClick={addNewBrowserTab}
+              className="p-1 rounded-full hover:bg-muted"
             >
-              <FileText className="h-4 w-4 mr-1.5" />
-              XenScribe
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Navigation and address bar row */}
+        <div className="flex items-center px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="icon"><ChevronLeft /></Button>
+            <Button variant="ghost" size="icon"><ChevronRight /></Button>
+            <Button variant="ghost" size="icon"><RefreshCw /></Button>
+          </div>
+          <div className="flex items-center mr-4 ml-2">
+            <div className="flex items-center">
+
+            </div>
+          </div>
+          <div className="flex flex-1 px-2">
+            <Input
+              type="text"
+              className="flex-1 bg-background text-foreground placeholder:text-muted-foreground border border-input px-3 py-1 rounded-md focus:outline-none"
+              placeholder="Search or enter address"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  handleSearch(searchQuery.trim());
+                  setSearchQuery('');
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center space-x-3 ml-2">
+            <div className="flex items-center text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+              <ShieldCheck className="w-3 h-3 mr-1" />
+              <span>Secure</span>
+            </div>
+            {xenScribeReady && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={activateXenScribe}
+                className="text-blue-500 border-blue-200 hover:bg-blue-50"
+              >
+                <FileText className="h-4 w-4 mr-1.5" />
+                XenScribe
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <Settings className="h-5 w-5" />
             </Button>
-          )}
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <Settings className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <User className="h-5 w-5" />
-          </Button>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <User className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
       <main className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-auto p-4 relative">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key={activeContent}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
               className="h-full"
             >
-              {activeTab === "Home" && !consultMode && (
+              {/* Home content */}
+              {activeContent === 'home' && !consultMode && (
                 <HomeContent
                   handleSearch={handleSearch}
                   simulationMessages={simulationMessages}
-                  setActiveTab={setActiveTab}
+                  setActiveTab={handleSetActiveTab}
                   setAgentWorking={setAgentWorking}
                   setConsultMode={setConsultMode}
                   setXenScribeReady={setXenScribeReady}
@@ -132,7 +334,9 @@ export default function BrowserShell() {
                   setAuditLogs={setAuditLogs}
                 />
               )}
-              {activeTab === "Home" && consultMode && (
+              
+              {/* Clinical consult content */}
+              {activeContent === 'consult' && (
                 <div className="flex flex-col items-center justify-center h-full w-full">
                   <div className="w-full max-w-4xl mx-auto flex-1">
                     <Suspense fallback={
@@ -149,7 +353,9 @@ export default function BrowserShell() {
                   </div>
                 </div>
               )}
-              {activeTab === "Agents" && (
+              
+              {/* Agents dashboard content */}
+              {activeContent === 'agents' && (
                 <Suspense fallback={
                   <div className="flex flex-col items-center justify-center h-full">
                     <div className="animate-pulse flex flex-col items-center gap-3">
@@ -162,14 +368,73 @@ export default function BrowserShell() {
                   <AgentsDashboard />
                 </Suspense>
               )}
-              {activeTab === "Insurance" && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+              
+              {/* Insurance content */}
+              {activeContent === 'insurance' && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+
+              {/* Patient Records content */}
+              {activeContent === 'patientRecords' && (
+                <div className="max-w-5xl mx-auto">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">Patient Records</h2>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm">
+                        <RefreshCw className="h-4 w-4 mr-1.5" />
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-card rounded-lg shadow overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted text-muted-foreground">
+                          <tr>
+                            <th className="py-3 px-4 text-left font-medium">Patient ID</th>
+                            <th className="py-3 px-4 text-left font-medium">Name</th>
+                            <th className="py-3 px-4 text-left font-medium">Age</th>
+                            <th className="py-3 px-4 text-left font-medium">Gender</th>
+                            <th className="py-3 px-4 text-left font-medium">Last Visit</th>
+                            <th className="py-3 px-4 text-left font-medium">Primary Diagnosis</th>
+                            <th className="py-3 px-4 text-left font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {[
+                            { id: "PT-3892", name: "John Smith", age: 45, gender: "Male", lastVisit: "2023-03-12", diagnosis: "Hypertension" },
+                            { id: "PT-4102", name: "Maria Garcia", age: 38, gender: "Female", lastVisit: "2023-03-15", diagnosis: "Type 2 Diabetes" },
+                            { id: "PT-3756", name: "Robert Johnson", age: 57, gender: "Male", lastVisit: "2023-03-05", diagnosis: "Osteoarthritis" },
+                            { id: "PT-4238", name: "Jennifer Lee", age: 29, gender: "Female", lastVisit: "2023-03-18", diagnosis: "Asthma" },
+                            { id: "PT-3921", name: "David Williams", age: 62, gender: "Male", lastVisit: "2023-03-09", diagnosis: "COPD" }
+                          ].map((patient, i) => (
+                            <tr key={i} className="hover:bg-muted/50 transition-colors">
+                              <td className="py-3 px-4">{patient.id}</td>
+                              <td className="py-3 px-4 font-medium">{patient.name}</td>
+                              <td className="py-3 px-4">{patient.age}</td>
+                              <td className="py-3 px-4">{patient.gender}</td>
+                              <td className="py-3 px-4">{patient.lastVisit}</td>
+                              <td className="py-3 px-4">{patient.diagnosis}</td>
+                              <td className="py-3 px-4">
+                                <div className="flex space-x-2">
+                                  <button className="text-blue-500 hover:text-blue-700">View</button>
+                                  <button className="text-blue-500 hover:text-blue-700">Edit</button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
         <Sidebar
           tabs={tabs}
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleSetActiveTab}
           agentWorking={agentWorking}
           consultMode={consultMode}
           setConsultMode={setConsultMode}
@@ -386,8 +651,8 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
       </div>
       
       {permissionRequested && (
-        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg p-6 max-w-md w-full shadow-xl border border-border">
             <div className="flex items-center mb-4">
               <Bot size={24} className="text-blue-500 mr-2" />
               <h3 className="text-lg font-bold">AI Assistant Permission</h3>
@@ -395,7 +660,7 @@ function InsuranceContent({ agentWorking, setAgentWorking }: {
             <p className="mb-4">I&apos;d like to help you complete this form automatically. Would you like me to fill out the application for you?</p>
             <div className="flex space-x-3">
               <Button 
-                className="flex-1 bg-blue-600 hover:bg-blue-700" 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" 
                 onClick={handleGrantPermission}
               >
                 Yes, fill it automatically
