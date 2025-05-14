@@ -16,10 +16,8 @@ interface HomeContentProps {
   handleSearch: (query: string) => void;
   simulationMessages: { sender: string; text: string }[];
   setActiveTab: React.Dispatch<React.SetStateAction<Tab>>;
-  setAgentWorking: React.Dispatch<React.SetStateAction<boolean>>;
   setConsultMode: React.Dispatch<React.SetStateAction<boolean>>;
   setXenScribeReady: React.Dispatch<React.SetStateAction<boolean>>;
-  auditLogs: string[];
   setAuditLogs: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
@@ -27,10 +25,8 @@ export default function HomeContent({
   handleSearch, 
   simulationMessages, 
   setActiveTab, 
-  setAgentWorking,
   setConsultMode,
   setXenScribeReady,
-  auditLogs,
   setAuditLogs
 }: HomeContentProps) {
   const [loading, setLoading] = useState(true);

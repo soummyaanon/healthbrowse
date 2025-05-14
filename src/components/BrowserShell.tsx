@@ -234,6 +234,7 @@ export default function BrowserShell() {
   };
   
   // When clicking on a browser tab, update the history
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const activeTab = browserTabs.find(tab => tab.id === activeBrowserTab);
     if (activeTab && activeTab.url) {
@@ -444,10 +445,8 @@ export default function BrowserShell() {
                   handleSearch={handleSearch}
                   simulationMessages={simulationMessages}
                   setActiveTab={handleSetActiveTab}
-                  setAgentWorking={setAgentWorking}
                   setConsultMode={setConsultMode}
                   setXenScribeReady={setXenScribeReady}
-                  auditLogs={auditLogs}
                   setAuditLogs={setAuditLogs}
                 />
               )}
