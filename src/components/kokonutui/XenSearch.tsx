@@ -120,7 +120,7 @@ export default function Light() {
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
   const [detectedTerms, setDetectedTerms] = useState<string[]>([]);
   const [activeGuideline, setActiveGuideline] = useState<string | null>(null);
-  const [mockChartText, setMockChartText] = useState("Patient is a 67-year-old male with history of Type 2 Diabetes, Hypertension, and CKD Stage 3. Blood pressure is elevated at 142/88 mmHg. Patient reports tension headache 2-3 times weekly.");
+  const [mockChartText] = useState("Patient is a 67-year-old male with history of Type 2 Diabetes, Hypertension, and CKD Stage 3. Blood pressure is elevated at 142/88 mmHg. Patient reports tension headache 2-3 times weekly.");
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(false);
   const [showFullSummary, setShowFullSummary] = useState(false);

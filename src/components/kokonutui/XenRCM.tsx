@@ -224,7 +224,7 @@ const useAgentSimulation = () => {
   const simulateThinking = useCallback((message: string, durationMs: number = 1500): Promise<void> => {
     return new Promise((resolve) => {
       setAgentMessages(prev => [...prev, {text: message, type: 'thinking'}]);
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         setAgentMessages(prev => [
           ...prev.slice(0, prev.length - 1),
           {text: message, type: 'processing'}
@@ -910,37 +910,6 @@ export default function Echo() {
                 type: 'denial'
               });
           
-              // Simulate detection from payer portal
-              const mockPortalHTML = `
-                <div class="denial-details">
-                  <h2>Claim Denial Notice</h2>
-                  <div class="detail-row">
-                    <span class="label">Claim Number:</span>
-                    <span class="value">ABC12345678</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="label">Patient:</span>
-                    <span class="value">John Smith</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="label">DOS:</span>
-                    <span class="value">05/15/2024</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="label">Provider:</span>
-                    <span class="value">Dr. Jennifer Adams</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="label">CPT:</span>
-                    <span class="value">99214</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="label">Status:</span>
-                    <span class="value denied">Denied due to lack of medical necessity documentation</span>
-                  </div>
-                </div>
-              `;
-              
               // Directly extract info and set denial text
               const denialText = `Claim #: ABC12345678
 Date of Service: 05/15/2024
@@ -967,27 +936,6 @@ Amount: $175.00
                   message: 'Extracting clinical data from patient record...',
                   type: 'clinical'
                 });
-                
-                // Extract clinical data (simulated)
-                const mockEHRHTML = `
-                  <div class="patient-record">
-                    <h2>Patient Encounter</h2>
-                    <div class="patient-info">
-                      <div>PATIENT: John Smith</div>
-                      <div>DOB: 09/12/1965</div>
-                      <div>DATE OF SERVICE: 05/15/2024</div>
-                    </div>
-                    <div class="soap-note">
-                      <div>SUBJECTIVE: Patient presents with ongoing hypertension management and reports occasional headaches.</div>
-                      <div>OBJECTIVE: BP 142/88, P 72, RR 16, T 98.6F. Physical exam reveals normal heart sounds.</div>
-                      <div>ASSESSMENT: 
-                        1. Essential hypertension (I10) - poorly controlled
-                        2. Type 2 diabetes mellitus (E11.9) - stable
-                      </div>
-                      <div>PLAN: Adjust medication. Follow up in 3 months.</div>
-                    </div>
-                  </div>
-                `;
                 
                 // Extract clinical data (simulated)
                 const clinicalText = `PATIENT: John Smith
@@ -1160,7 +1108,7 @@ Adjust medication. Follow up in 3 months.`;
                         Analysis Process
                       </h3>
                       <div className="space-y-3">
-                        {analysisSteps.map((step, index) => (
+                        {analysisSteps.map((step) => (
                           <div key={step.id} className="flex items-center">
                             <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
                               <div className={cn(
