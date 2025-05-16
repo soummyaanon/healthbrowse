@@ -116,9 +116,9 @@ export default function BrowserShell() {
   const handleSearch = (query: string) => {
     const msgs = [
       { sender: 'User', text: query },
-      { sender: 'ErachI', text: `Searching for "${query}"...` },
-      { sender: 'ErachI', text: `I found some insurance options related to "${query}". Would you like to apply?` },
-      { sender: 'ErachI', text: `Let me help you fill out an application form.` },
+      { sender: 'XEn', text: `Searching for "${query}"...` },
+      { sender: 'XEn', text: `I found some insurance options related to "${query}". Would you like to apply?` },
+      { sender: 'XEn', text: `Let me help you fill out an application form.` },
     ];
     setSimulationMessages(msgs);
     setAgentWorking(true);
@@ -136,8 +136,6 @@ export default function BrowserShell() {
     setActiveBrowserTab(newTabId);
     updateAddressBar(`https://wujihealth.com/search?q=${encodeURIComponent(query)}`);
     
-    // Don't immediately set active content to insurance, let the simulation play out
-    
     // Add the new URL to history
     const newUrl = `https://wujihealth.com/search?q=${encodeURIComponent(query)}`;
     if (historyIndex < history.length - 1) {
@@ -149,9 +147,31 @@ export default function BrowserShell() {
     setHistoryIndex(history.length);
     
     // Delay the tab change to Insurance to allow the simulation to complete
+    // The delay is set to match the full duration of the simulation (7 steps)
     setTimeout(() => {
+      // Clear the simulation messages to prevent showing them again
+      setSimulationMessages([]);
+      
+      // Set active tab to Insurance and show insurance form
       setActiveTab("Insurance");
       setActiveContent('insurance');
+      
+      // Update the browser tab with insurance-specific info
+      const insuranceTabId = newTabId;
+      setBrowserTabs(prevTabs => 
+        prevTabs.map(tab => 
+          tab.id === insuranceTabId 
+            ? {...tab, title: 'HealthShield Application', url: 'https://wujihealth.com/insurance/apply'} 
+            : tab
+        )
+      );
+      updateAddressBar('https://wujihealth.com/insurance/apply');
+      
+      // Add audit log entry for the transition
+      setAuditLogs(prev => [
+        ...prev,
+        `[${new Date().toLocaleTimeString()}] System: Redirected to insurance application form`
+      ]);
     }, 10000); // 10 seconds delay to match simulation timing
   };
   
@@ -276,7 +296,16 @@ export default function BrowserShell() {
       setActiveContent('patientRecords');
       // Keep consult mode state unchanged - switching tabs doesn't affect consult mode
     } else if (url.includes('search')) {
+      // Only change to insurance if we're not in the process of agent working
+      // This prevents reverting back to simulation during form filling
+      if (!agentWorking) {
+        setActiveContent('insurance');
+      }
+      // Keep consult mode state unchanged
+    } else if (url.includes('insurance/apply')) {
+      // This is specifically for the insurance application form
       setActiveContent('insurance');
+      setActiveTab("Insurance");
       // Keep consult mode state unchanged
     } else if (url.includes('agents')) {
       setActiveContent('agents');
@@ -286,7 +315,7 @@ export default function BrowserShell() {
       setActiveContent('home');
       // Keep consult mode state unchanged
     }
-  }, [xenScribeReady, consultMode, setActiveTab]);
+  }, [xenScribeReady, consultMode, agentWorking, setActiveTab]);
   
   // When clicking on a browser tab, update the history
   useEffect(() => {

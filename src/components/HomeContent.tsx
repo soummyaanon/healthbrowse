@@ -143,14 +143,6 @@ export default function HomeContent({
   };
   
   const handleInsuranceQuestionSelect = (question: string) => {
-    // First generate simulation messages
-    // const msgs = [
-    //   { sender: 'User', text: question },
-    //   { sender: 'ErachI', text: `Searching for "${question}"...` },
-    //   { sender: 'ErachI', text: `I found some insurance options related to "${question}". Would you like to apply?` },
-    //   { sender: 'ErachI', text: `Let me help you fill out an application form.` },
-    // ];
-    
     // Set the insurance search query without immediately switching tabs
     handleSearch(question);
     
@@ -158,7 +150,7 @@ export default function HomeContent({
     setAuditLogs(prev => [
       ...prev,
       `[${new Date().toLocaleTimeString()}] System: Insurance Question Selected`,
-      `[${new Date().toLocaleTimeString()}] ErachI: Processing "${question}"`
+      `[${new Date().toLocaleTimeString()}] XEn: Processing "${question}"`
     ]);
     
     console.log("Insurance question selected:", question);
@@ -167,11 +159,12 @@ export default function HomeContent({
     setRedirectingToForm(true);
     
     // After the simulation completes (approximately 10 seconds for all 7 steps),
-    // redirect to the insurance form
+    // the redirect to the insurance form happens in handleSearch
     setTimeout(() => {
-      setActiveTab("Insurance");
+      // Just clear the redirecting flag here
       setRedirectingToForm(false);
-    }, 10000); // Adjust timing to match the full AgenticSimulation
+      // The actual tab change is handled in BrowserShell's handleSearch function
+    }, 10000); // Match timing with the handleSearch function
   };
   
   const toggleCategory = (index: number) => {
@@ -293,7 +286,7 @@ export default function HomeContent({
               
               {/* Separate Insurance Section */}
               <div className="mt-8">
-                <h2 className="text-lg font-medium mb-3 text-center">ErachI Insurance Assistant</h2>
+                <h2 className="text-lg font-medium mb-3 text-center">XEn Insurance Agent</h2>
                 <div className="flex justify-center">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -310,7 +303,7 @@ export default function HomeContent({
                         </div>
                         <div>
                           <h3 className="font-medium">Insurance Assistance</h3>
-                          <p className="text-sm text-muted-foreground">Let ErachI help with your insurance needs</p>
+                          <p className="text-sm text-muted-foreground">Let XEn help with your insurance needs</p>
                         </div>
                       </div>
                     </Card>

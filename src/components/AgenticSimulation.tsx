@@ -35,7 +35,7 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
       () => {
         setIsThinking(false);
         setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
+          sender: 'XEn',
           text: "Searching for insurance options...",
           type: "thinking"
         }]);
@@ -48,7 +48,7 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
       () => {
         setIsCallingTool(false);
         setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
+          sender: 'XEn',
           text: `I found 3 insurance plans matching "${messages[0].text}".`,
           type: "message"
         }]);
@@ -61,7 +61,7 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
       () => {
         setIsThinking(false);
         setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
+          sender: 'XEn',
           text: "Analyzing plan benefits and eligibility requirements...",
           type: "thinking"
         }]);
@@ -74,7 +74,7 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
       () => {
         setIsCallingTool(false);
         setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
+          sender: 'XEn',
           text: "Based on your search, I recommend HealthShield Gold Plan with comprehensive coverage.",
           type: "message"
         }]);
@@ -98,7 +98,7 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
       () => {
         setIsThinking(false);
         setDisplayed(prev => [...prev, {
-          sender: 'ErachI',
+          sender: 'XEn',
           text: "I can help you fill out an application right now. Would you like me to auto-fill the form for you?",
           type: "message"
         }]);
@@ -147,9 +147,9 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
   return (
     <div className="mt-6 w-full max-w-md mx-auto bg-card rounded-lg shadow-lg overflow-hidden">
       <div className="flex items-center justify-between p-3 border-b border-border">
-        <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-          <span className="font-medium">ErachI Assistant</span>
+          <span className="font-medium">XEn Insurance Agent</span>
         </div>
         <div className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
           {isCallingTool ? "Running tools" : "Active"}
