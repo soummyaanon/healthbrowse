@@ -494,16 +494,26 @@ function ClinicalAgentChat({ initialQuestion }: { initialQuestion?: string }) {
 
     // If initialQuestion is provided, automatically submit it after a short delay
     if (initialQuestion) {
+      console.log("initialQuestion in useEffect:", initialQuestion);
+      
       // Set the input value to match the initial question
       setInputValue(initialQuestion);
       if (aiInputRef.current) {
         aiInputRef.current.setValue(initialQuestion);
       }
       
-      // Auto-submit the question with a small delay
-      setTimeout(() => handleUserSubmit(initialQuestion), 500);
+      // Auto-submit the question immediately
+      // Using a very short timeout to ensure the state updates have happened
+      setTimeout(() => {
+        if (initialQuestion) {
+          console.log("Auto-submitting question:", initialQuestion);
+          handleUserSubmit(initialQuestion);
+        }
+      }, 100);
     }
-  }, [initialQuestion]);
+  }, [initialQuestion]); // eslint-disable-line react-hooks/exhaustive-deps
+  // We're intentionally leaving out handleUserSubmit from dependencies
+  // to prevent infinite loops while still responding to initialQuestion changes
 
   const handleUserSubmit = (query: string) => {
     if (!query) return;

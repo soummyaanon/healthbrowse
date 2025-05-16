@@ -306,8 +306,11 @@ export default function BrowserShell() {
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     
-    // Clear clinical question when changing tabs
-    setClinicalQuestion("");
+    // Only clear clinical question when explicitly changing tabs
+    // and not when the tab is changed as part of setting a clinical question
+    if (clinicalQuestion && tab !== "Home") {
+      setClinicalQuestion("");
+    }
     
     // Handle active tab selection
     if (tab === "Home") {
@@ -539,40 +542,10 @@ export default function BrowserShell() {
               className="h-full"
             >
               {/* If we have a clinical question, show the ClinicalAgentChat regardless of activeContent */}
-              {clinicalQuestion ? (
-                <div className="flex flex-col items-center justify-center h-full w-full">
-                  <div className="w-full max-w-5xl mx-auto flex-1">
-                    <Suspense fallback={
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <div className="animate-pulse flex flex-col items-center gap-3">
-                          <Bot size={40} className="text-primary" />
-                          <div className="text-lg font-medium">Loading Clinical Consult...</div>
-                          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      </div>
-                    }>
-                      <ClinicalAgentChat initialQuestion={clinicalQuestion} />
-                    </Suspense>
-                  </div>
-                </div>
-              ) : (
-                /* Original content rendering based on activeContent */
-                <>
-                  {/* Home content */}
-                  {activeContent === 'home' && !consultMode && (
-                    <HomeContent
-                      handleSearch={handleSearch}
-                      simulationMessages={simulationMessages}
-                      setActiveTab={handleSetActiveTab}
-                      setConsultMode={setConsultMode}
-                      setXenScribeReady={setXenScribeReady}
-                      setAuditLogs={setAuditLogs}
-                      setClinicalQuestion={setClinicalQuestion}
-                    />
-                  )}
-                  
-                  {/* Clinical consult content */}
-                  {activeContent === 'consult' && (
+              {(() => {
+                if (clinicalQuestion) {
+                  console.log("Rendering ClinicalAgentChat with question:", clinicalQuestion);
+                  return (
                     <div className="flex flex-col items-center justify-center h-full w-full">
                       <div className="w-full max-w-5xl mx-auto flex-1">
                         <Suspense fallback={
@@ -588,96 +561,133 @@ export default function BrowserShell() {
                         </Suspense>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Agents dashboard content */}
-                  {activeContent === 'agents' && (
-                    <Suspense fallback={
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <div className="animate-pulse flex flex-col items-center gap-3">
-                          <Bot size={40} className="text-primary" />
-                          <div className="text-lg font-medium">Loading AI Agents Dashboard...</div>
-                          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      </div>
-                    }>
-                      <AgentsDashboard />
-                    </Suspense>
-                  )}
-                  
-                  {/* Insurance content */}
-                  {activeContent === 'insurance' && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
-
-                  {/* Patient Records content */}
-                  {activeContent === 'patientRecords' && (
-                    <div className="max-w-5xl mx-auto">
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold">Patient Records</h2>
-                        <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm">
-                            <RefreshCw className="h-4 w-4 mr-1.5" />
-                            Refresh
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Audit logs display (collapsed by default) */}
-                      <div className="mb-4 bg-muted/30 rounded-md p-2">
-                        <details>
-                          <summary className="text-sm font-medium cursor-pointer">System Logs ({auditLogs.length})</summary>
-                          <div className="mt-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                            {auditLogs.map((log, index) => (
-                              <div key={index} className="py-0.5">{log}</div>
-                            ))}
+                  );
+                } else {
+                  return (
+                    /* Original content rendering based on activeContent */
+                    <>
+                      {/* Home content */}
+                      {activeContent === 'home' && !consultMode && (
+                        <HomeContent
+                          handleSearch={handleSearch}
+                          simulationMessages={simulationMessages}
+                          setActiveTab={handleSetActiveTab}
+                          setConsultMode={setConsultMode}
+                          setXenScribeReady={setXenScribeReady}
+                          setAuditLogs={setAuditLogs}
+                          setClinicalQuestion={setClinicalQuestion}
+                        />
+                      )}
+                      
+                      {/* Clinical consult content */}
+                      {activeContent === 'consult' && (
+                        <div className="flex flex-col items-center justify-center h-full w-full">
+                          <div className="w-full max-w-5xl mx-auto flex-1">
+                            <Suspense fallback={
+                              <div className="flex flex-col items-center justify-center h-full">
+                                <div className="animate-pulse flex flex-col items-center gap-3">
+                                  <Bot size={40} className="text-primary" />
+                                  <div className="text-lg font-medium">Loading Clinical Consult...</div>
+                                  <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                              </div>
+                            }>
+                              <ClinicalAgentChat initialQuestion={clinicalQuestion} />
+                            </Suspense>
                           </div>
-                        </details>
-                      </div>
-
-                      <div className="bg-card rounded-lg shadow overflow-hidden">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-muted text-muted-foreground">
-                              <tr>
-                                <th className="py-3 px-4 text-left font-medium">Patient ID</th>
-                                <th className="py-3 px-4 text-left font-medium">Name</th>
-                                <th className="py-3 px-4 text-left font-medium">Age</th>
-                                <th className="py-3 px-4 text-left font-medium">Gender</th>
-                                <th className="py-3 px-4 text-left font-medium">Last Visit</th>
-                                <th className="py-3 px-4 text-left font-medium">Primary Diagnosis</th>
-                                <th className="py-3 px-4 text-left font-medium">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                              {[
-                                { id: "PT-3892", name: "John Smith", age: 45, gender: "Male", lastVisit: "2023-03-12", diagnosis: "Hypertension" },
-                                { id: "PT-4102", name: "Maria Garcia", age: 38, gender: "Female", lastVisit: "2023-03-15", diagnosis: "Type 2 Diabetes" },
-                                { id: "PT-3756", name: "Robert Johnson", age: 57, gender: "Male", lastVisit: "2023-03-05", diagnosis: "Osteoarthritis" },
-                                { id: "PT-4238", name: "Jennifer Lee", age: 29, gender: "Female", lastVisit: "2023-03-18", diagnosis: "Asthma" },
-                                { id: "PT-3921", name: "David Williams", age: 62, gender: "Male", lastVisit: "2023-03-09", diagnosis: "COPD" }
-                              ].map((patient, i) => (
-                                <tr key={i} className="hover:bg-muted/50 transition-colors">
-                                  <td className="py-3 px-4">{patient.id}</td>
-                                  <td className="py-3 px-4 font-medium">{patient.name}</td>
-                                  <td className="py-3 px-4">{patient.age}</td>
-                                  <td className="py-3 px-4">{patient.gender}</td>
-                                  <td className="py-3 px-4">{patient.lastVisit}</td>
-                                  <td className="py-3 px-4">{patient.diagnosis}</td>
-                                  <td className="py-3 px-4">
-                                    <div className="flex space-x-2">
-                                      <button className="text-blue-500 hover:text-blue-700">View</button>
-                                      <button className="text-blue-500 hover:text-blue-700">Edit</button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                      )}
+                      
+                      {/* Agents dashboard content */}
+                      {activeContent === 'agents' && (
+                        <Suspense fallback={
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <div className="animate-pulse flex flex-col items-center gap-3">
+                              <Bot size={40} className="text-primary" />
+                              <div className="text-lg font-medium">Loading AI Agents Dashboard...</div>
+                              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          </div>
+                        }>
+                            <AgentsDashboard />
+                          </Suspense>
+                      )}
+                      
+                      {/* Insurance content */}
+                      {activeContent === 'insurance' && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+
+                      {/* Patient Records content */}
+                      {activeContent === 'patientRecords' && (
+                        <div className="max-w-5xl mx-auto">
+                          <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold">Patient Records</h2>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm">
+                                <RefreshCw className="h-4 w-4 mr-1.5" />
+                                Refresh
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Audit logs display (collapsed by default) */}
+                          <div className="mb-4 bg-muted/30 rounded-md p-2">
+                            <details>
+                              <summary className="text-sm font-medium cursor-pointer">System Logs ({auditLogs.length})</summary>
+                              <div className="mt-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                                {auditLogs.map((log, index) => (
+                                  <div key={index} className="py-0.5">{log}</div>
+                                ))}
+                              </div>
+                            </details>
+                          </div>
+
+                          <div className="bg-card rounded-lg shadow overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead className="bg-muted text-muted-foreground">
+                                  <tr>
+                                    <th className="py-3 px-4 text-left font-medium">Patient ID</th>
+                                    <th className="py-3 px-4 text-left font-medium">Name</th>
+                                    <th className="py-3 px-4 text-left font-medium">Age</th>
+                                    <th className="py-3 px-4 text-left font-medium">Gender</th>
+                                    <th className="py-3 px-4 text-left font-medium">Last Visit</th>
+                                    <th className="py-3 px-4 text-left font-medium">Primary Diagnosis</th>
+                                    <th className="py-3 px-4 text-left font-medium">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                  {[
+                                    { id: "PT-3892", name: "John Smith", age: 45, gender: "Male", lastVisit: "2023-03-12", diagnosis: "Hypertension" },
+                                    { id: "PT-4102", name: "Maria Garcia", age: 38, gender: "Female", lastVisit: "2023-03-15", diagnosis: "Type 2 Diabetes" },
+                                    { id: "PT-3756", name: "Robert Johnson", age: 57, gender: "Male", lastVisit: "2023-03-05", diagnosis: "Osteoarthritis" },
+                                    { id: "PT-4238", name: "Jennifer Lee", age: 29, gender: "Female", lastVisit: "2023-03-18", diagnosis: "Asthma" },
+                                    { id: "PT-3921", name: "David Williams", age: 62, gender: "Male", lastVisit: "2023-03-09", diagnosis: "COPD" }
+                                  ].map((patient, i) => (
+                                    <tr key={i} className="hover:bg-muted/50 transition-colors">
+                                      <td className="py-3 px-4">{patient.id}</td>
+                                      <td className="py-3 px-4 font-medium">{patient.name}</td>
+                                      <td className="py-3 px-4">{patient.age}</td>
+                                      <td className="py-3 px-4">{patient.gender}</td>
+                                      <td className="py-3 px-4">{patient.lastVisit}</td>
+                                      <td className="py-3 px-4">{patient.diagnosis}</td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex space-x-2">
+                                          <button className="text-blue-500 hover:text-blue-700">View</button>
+                                          <button className="text-blue-500 hover:text-blue-700">Edit</button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                }
+              })()}
             </motion.div>
           </AnimatePresence>
         </div>

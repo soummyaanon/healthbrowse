@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useTheme } from "next-themes";
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
-import { Stethoscope, Pill, Activity, ScrollText, ChevronDown, ChevronUp } from "lucide-react";
+import { Stethoscope, Pill, Activity, ScrollText} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { cn } from '@/lib/utils';
+
 import { Tab } from '@/components/types';
 import AgenticSimulation from '@/components/AgenticSimulation';
 import { Card } from '@/components/ui/card';
@@ -82,7 +82,6 @@ export default function HomeContent({
   handleSearch, 
   simulationMessages, 
   setActiveTab, 
-  setConsultMode,
   setXenScribeReady,
   setAuditLogs,
   setClinicalQuestion
@@ -118,12 +117,10 @@ export default function HomeContent({
     // Set the clinical question which will directly trigger ClinicalAgentChat in BrowserShell
     setClinicalQuestion(question);
     
-    // Set active tab to Home and enable consult mode
+    // Set active tab to Home - this is still needed to ensure proper navigation
     setActiveTab("Home");
-    setConsultMode(true);
     
-    // No need to explicitly set consult mode as the BrowserShell will now handle the display logic
-    // based on whether clinicalQuestion is set
+    // Add audit log entries
     setAuditLogs(prev => [
       ...prev,
       `[${new Date().toLocaleTimeString()}] System: Clinical Question Selected`,
@@ -132,6 +129,8 @@ export default function HomeContent({
     
     // Set local query for display (optional)
     setLocalQuery(question);
+    
+    console.log("Clinical question selected:", question);
   };
   
   const toggleCategory = (index: number) => {
@@ -185,67 +184,59 @@ export default function HomeContent({
                 }}
               />
               
-              <div className="mt-8">
-                <h2 className="text-xl font-semibold mb-4 text-center">Clinical Resources</h2>
-                <div className="space-y-3">
+              <div className="mt-6">
+                <h2 className="text-lg font-medium mb-3 text-center">Clinical Resources</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {SUGGESTION_CATEGORIES.map((category, idx) => (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.1 }}
+                      className="relative"
                     >
-                      <Card className={cn(
-                        "overflow-hidden transition-all",
-                        `border-${category.color}-200 dark:border-${category.color}-900`
-                      )}>
-                        <div 
-                          className={cn(
-                            "p-3 flex items-center justify-between cursor-pointer",
-                            `hover:bg-${category.color}-50 dark:hover:bg-${category.color}-900/20`,
-                            expandedCategory === idx && `bg-${category.color}-50 dark:bg-${category.color}-900/20`
-                          )}
-                          onClick={() => toggleCategory(idx)}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-full bg-${category.color}-100 dark:bg-${category.color}-900/30`}>
-                              {category.icon}
-                            </div>
-                            <h3 className="font-medium">{category.title}</h3>
+                      <Card 
+                        className={`p-2 h-full cursor-pointer border-${category.color}-200 dark:border-${category.color}-900 hover:bg-${category.color}-50 dark:hover:bg-${category.color}-900/20`}
+                        onClick={() => toggleCategory(idx)}
+                      >
+                        <div className="flex flex-col items-center text-center space-y-1">
+                          <div className={`p-1.5 rounded-full bg-${category.color}-100 dark:bg-${category.color}-900/30`}>
+                            {category.icon}
                           </div>
-                          {expandedCategory === idx ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                          <h3 className="text-sm font-medium">{category.title}</h3>
                         </div>
-                        
-                        <AnimatePresence>
-                          {expandedCategory === idx && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="p-3 border-t space-y-2">
-                                {category.questions.map((question, qIdx) => (
-                                  <motion.div 
-                                    key={qIdx}
-                                    initial={{ opacity: 0, x: -5 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: qIdx * 0.05 }}
-                                    className={cn(
-                                      "p-2 rounded-md cursor-pointer text-sm",
-                                      `hover:bg-${category.color}-100 dark:hover:bg-${category.color}-900/40`
-                                    )}
-                                    onClick={() => handleClinicalQuestionSelect(question)}
-                                  >
-                                    {question}
-                                  </motion.div>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </Card>
+                      
+                      <AnimatePresence>
+                        {expandedCategory === idx && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute z-10 top-full left-0 right-0 mt-1 bg-background rounded-md shadow-lg border overflow-hidden"
+                            style={{ width: '200px' }}
+                          >
+                            <div className="p-2 space-y-1">
+                              {category.questions.map((question, qIdx) => (
+                                <motion.div 
+                                  key={qIdx}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ delay: qIdx * 0.05 }}
+                                  className={`p-1.5 rounded-md cursor-pointer text-xs hover:bg-${category.color}-100 dark:hover:bg-${category.color}-900/40`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleClinicalQuestionSelect(question);
+                                  }}
+                                >
+                                  {question}
+                                </motion.div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
                   ))}
                 </div>
