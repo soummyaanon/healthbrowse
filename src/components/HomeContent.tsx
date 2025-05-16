@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useTheme } from "next-themes";
 import AIInput_04 from "@/components/kokonutui/ai-input-04";
-import { Stethoscope, Pill, Activity, ScrollText} from "lucide-react";
+import { Stethoscope, Pill, Activity, ScrollText, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 
@@ -40,8 +40,15 @@ const MEDICAL_QUESTIONS = [
   "What's the standard vaccination schedule for adults?"
 ];
 
-// All suggestion categories
-const SUGGESTION_CATEGORIES = [
+// Insurance questions
+const INSURANCE_QUESTIONS = [
+  "Help me find health insurance options",
+  "I need assistance applying for healthcare coverage",
+  "What insurance plans are available for my family?"
+];
+
+// All clinical suggestion categories
+const CLINICAL_CATEGORIES = [
   {
     title: "Drug Side Effects",
     icon: <Pill className="w-5 h-5" />,
@@ -91,6 +98,8 @@ export default function HomeContent({
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+  const [expandedInsurance, setExpandedInsurance] = useState(false);
+  const [redirectingToForm, setRedirectingToForm] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -133,8 +142,44 @@ export default function HomeContent({
     console.log("Clinical question selected:", question);
   };
   
+  const handleInsuranceQuestionSelect = (question: string) => {
+    // First generate simulation messages
+    // const msgs = [
+    //   { sender: 'User', text: question },
+    //   { sender: 'ErachI', text: `Searching for "${question}"...` },
+    //   { sender: 'ErachI', text: `I found some insurance options related to "${question}". Would you like to apply?` },
+    //   { sender: 'ErachI', text: `Let me help you fill out an application form.` },
+    // ];
+    
+    // Set the insurance search query without immediately switching tabs
+    handleSearch(question);
+    
+    // Add audit log entries
+    setAuditLogs(prev => [
+      ...prev,
+      `[${new Date().toLocaleTimeString()}] System: Insurance Question Selected`,
+      `[${new Date().toLocaleTimeString()}] ErachI: Processing "${question}"`
+    ]);
+    
+    console.log("Insurance question selected:", question);
+    
+    // Set redirecting flag to track the pending redirect
+    setRedirectingToForm(true);
+    
+    // After the simulation completes (approximately 10 seconds for all 7 steps),
+    // redirect to the insurance form
+    setTimeout(() => {
+      setActiveTab("Insurance");
+      setRedirectingToForm(false);
+    }, 10000); // Adjust timing to match the full AgenticSimulation
+  };
+  
   const toggleCategory = (index: number) => {
     setExpandedCategory(expandedCategory === index ? null : index);
+  };
+
+  const toggleInsurance = () => {
+    setExpandedInsurance(!expandedInsurance);
   };
   
   if (loading) {
@@ -174,9 +219,13 @@ export default function HomeContent({
                 onChange={(value) => setLocalQuery(value)}
                 onSubmit={(value) => {
                   // Check if this is a clinical question
-                  const allQuestions = SUGGESTION_CATEGORIES.flatMap(cat => cat.questions);
-                  if (allQuestions.includes(value)) {
+                  const allClinicalQuestions = CLINICAL_CATEGORIES.flatMap(cat => cat.questions);
+                  const allInsuranceQuestions = INSURANCE_QUESTIONS;
+                  
+                  if (allClinicalQuestions.includes(value)) {
                     handleClinicalQuestionSelect(value);
+                  } else if (allInsuranceQuestions.includes(value)) {
+                    handleInsuranceQuestionSelect(value);
                   } else {
                     handleSearch(value);
                     setLocalQuery("");
@@ -187,7 +236,7 @@ export default function HomeContent({
               <div className="mt-6">
                 <h2 className="text-lg font-medium mb-3 text-center">Clinical Resources</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {SUGGESTION_CATEGORIES.map((category, idx) => (
+                  {CLINICAL_CATEGORIES.map((category, idx) => (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
@@ -241,6 +290,70 @@ export default function HomeContent({
                   ))}
                 </div>
               </div>
+              
+              {/* Separate Insurance Section */}
+              <div className="mt-8">
+                <h2 className="text-lg font-medium mb-3 text-center">ErachI Insurance Assistant</h2>
+                <div className="flex justify-center">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative w-full max-w-md"
+                  >
+                    <Card 
+                      className="p-4 cursor-pointer border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      onClick={toggleInsurance}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                          <Shield className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Insurance Assistance</h3>
+                          <p className="text-sm text-muted-foreground">Let ErachI help with your insurance needs</p>
+                        </div>
+                      </div>
+                    </Card>
+                    
+                    <AnimatePresence>
+                      {expandedInsurance && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute z-10 top-full left-0 right-0 mt-1 bg-background rounded-md shadow-lg border overflow-hidden w-full"
+                        >
+                          <div className="p-3 space-y-2">
+                            {INSURANCE_QUESTIONS.map((question, qIdx) => (
+                              <motion.div 
+                                key={qIdx}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: qIdx * 0.05 }}
+                                className="p-2 rounded-md cursor-pointer text-sm hover:bg-red-100 dark:hover:bg-red-900/40"
+                                onClick={() => handleInsuranceQuestionSelect(question)}
+                              >
+                                {question}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </div>
+              </div>
+              
+              {/* Show a loading indicator when redirecting to form */}
+              {redirectingToForm && (
+                <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50">
+                  <div className="bg-card p-6 rounded-lg shadow-lg flex flex-col items-center">
+                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-lg font-medium">Redirecting to application form...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         ) : (

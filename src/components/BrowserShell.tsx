@@ -18,7 +18,7 @@ import HomeContent from "@/components/HomeContent";
 const ClinicalAgentChat = lazy(() => import("@/components/ClinicalAgentChat"));
 const AgentsDashboard = lazy(() => import("@/components/AgentsDashboard"));
 
-const tabs: Tab[] = ["Home", "Agents", "Insurance"];
+const tabs: Tab[] = ["Home", "Agents"];
 
 // Browser tab interface
 interface BrowserTab {
@@ -124,7 +124,6 @@ export default function BrowserShell() {
     setAgentWorking(true);
     setConsultMode(false);
     setActiveTab("Home");
-    setTimeout(() => setActiveTab("Insurance"), (msgs.length + 1) * 1000);
     
     // Add a new browser tab with the search query
     const newTabId = (browserTabs.length + 1).toString();
@@ -136,7 +135,8 @@ export default function BrowserShell() {
     }]);
     setActiveBrowserTab(newTabId);
     updateAddressBar(`https://wujihealth.com/search?q=${encodeURIComponent(query)}`);
-    setActiveContent('insurance');
+    
+    // Don't immediately set active content to insurance, let the simulation play out
     
     // Add the new URL to history
     const newUrl = `https://wujihealth.com/search?q=${encodeURIComponent(query)}`;
@@ -147,6 +147,12 @@ export default function BrowserShell() {
       setHistory([...history, newUrl]);
     }
     setHistoryIndex(history.length);
+    
+    // Delay the tab change to Insurance to allow the simulation to complete
+    setTimeout(() => {
+      setActiveTab("Insurance");
+      setActiveContent('insurance');
+    }, 10000); // 10 seconds delay to match simulation timing
   };
   
   // XenScribe is activated when the user clicks on the XenScribe tab or agent card

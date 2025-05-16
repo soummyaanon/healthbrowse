@@ -104,12 +104,25 @@ export default function AgenticSimulation({ messages }: AgenticSimulationProps) 
         }]);
         setIsCallingTool(true);
         setToolName("form_assistant");
+        setCurrentStep(5);
         return 1000;
       },
       
       // End sequence
       () => {
         setIsCallingTool(false);
+        setCurrentStep(6);
+        
+        // Add final user confirmation
+        setTimeout(() => {
+          setDisplayed(prev => [...prev, {
+            sender: 'User',
+            text: "Yes, please help me fill out the form.",
+            type: "message"
+          }]);
+          setCurrentStep(7);
+        }, 1000);
+        
         return 0;
       }
     ];

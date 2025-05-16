@@ -17,10 +17,13 @@ interface SidebarProps {
   setConsultMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = true, agentWorking = false, consultMode, setConsultMode }: SidebarProps) {
+export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = true, agentWorking = false, }: SidebarProps) {
   const [open, setOpen] = useState(initialOpen);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+
+  // Filter out "Insurance" from the tabs
+  const filteredTabs = tabs.filter(tab => tab !== "Insurance");
 
   // Mount effect to prevent hydration mismatch
   useEffect(() => {
@@ -43,7 +46,7 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
           <span className="font-semibold">Menu</span>
         </div>
             <nav className="flex-1 flex flex-col px-2 py-4 space-y-2">
-              {tabs.map(tab => (
+              {filteredTabs.map(tab => (
                 <button
                   key={tab}
                   className={cn(
@@ -55,39 +58,10 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
                   onClick={() => setActiveTab(tab)}
                 >
                   <span>{tab}</span>
-                  {tab === 'Insurance' && agentWorking && (
-                    <div className="flex items-center space-x-1">
-                      <Bot size={16} className="text-blue-500 animate-pulse" />
-                      <div className="relative w-6 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="absolute inset-0 bg-blue-500 animate-[leftToRight_2s_ease-in-out_infinite]" />
-                      </div>
-                    </div>
-                  )}
                 </button>
               ))}
               {activeTab === 'Home' && (
                 <div className="space-y-2 mt-4 border-t border-border pt-2">
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <span className="text-sm">Consult Mode</span>
-                    <input
-                      type="checkbox"
-                      checked={consultMode}
-                      onChange={(e) => {
-                        // Set consult mode
-                        setConsultMode(e.target.checked);
-                        // When turning on consult mode, also force a tab change to refresh
-                        if (e.target.checked) {
-                          // First go to another tab, then back to home
-                          // This trick helps ensure the content updates properly
-                          if (activeTab === "Home") {
-                            setActiveTab("Agents");
-                            setTimeout(() => setActiveTab("Home"), 10);
-                          }
-                        }
-                      }}
-                      className="ml-2"
-                    />
-                  </div>
                   <div className="flex items-center justify-between px-3 py-2">
                     <span className="text-sm">Dark Mode</span>
                     {mounted && (
