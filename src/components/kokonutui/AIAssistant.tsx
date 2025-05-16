@@ -118,7 +118,7 @@ export default function AIAssistant() {
     medications: ["Loratadine 10mg daily PRN"]
   });
   const [transcriptInput, setTranscriptInput] = useState("");
-  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+  // const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
   const [showAccuracyMetrics, setShowAccuracyMetrics] = useState(false);
   const [keyPhrases, setKeyPhrases] = useState<typeof MOCK_CLINICAL_PHRASES>([]);
   const [saveFormats, setSaveFormats] = useState<string[]>([]);
@@ -127,7 +127,7 @@ export default function AIAssistant() {
   const [showSavedAlert, setShowSavedAlert] = useState(false);
   const [noteSaveTitle, setNoteSaveTitle] = useState("");
   const [audioPaused, setAudioPaused] = useState(false);
-  const [audioVolume, setAudioVolume] = useState(0.7);
+  // const [audioVolume, setAudioVolume] = useState(0.7);
   
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   
