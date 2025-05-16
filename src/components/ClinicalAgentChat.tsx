@@ -474,13 +474,13 @@ const SimpleChart = ({ data }: { data: ChartData }) => {
 };
 
 // Main component - now designed for full tab view, not a floating window
-function ClinicalAgentChat() {
+function ClinicalAgentChat({ initialQuestion }: { initialQuestion?: string }) {
   const [messages, setMessages] = useState<{ sender: "user" | "agent"; text: string; thinking?: boolean; tool?: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastQA, setLastQA] = useState<{ answer: string; links: { title: string; url: string }[]; followups: string[] } | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialQuestion || "");
   
   // Ref to access the AIInput component's methods
   const aiInputRef = useRef<AIInput04Ref>(null);
@@ -491,7 +491,19 @@ function ClinicalAgentChat() {
       sender: "agent",
       text: "Welcome to Clinical Consult. Ask a question about medications, guidelines, or common medical issues."
     }]);
-  }, []);
+
+    // If initialQuestion is provided, automatically submit it after a short delay
+    if (initialQuestion) {
+      // Set the input value to match the initial question
+      setInputValue(initialQuestion);
+      if (aiInputRef.current) {
+        aiInputRef.current.setValue(initialQuestion);
+      }
+      
+      // Auto-submit the question with a small delay
+      setTimeout(() => handleUserSubmit(initialQuestion), 500);
+    }
+  }, [initialQuestion]);
 
   const handleUserSubmit = (query: string) => {
     if (!query) return;

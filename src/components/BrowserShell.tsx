@@ -3,7 +3,7 @@
 import React, { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, FileText, Plus, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Settings, User, MessageSquare, X, Bot, ShieldCheck, Plus } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
@@ -40,6 +40,7 @@ export default function BrowserShell() {
     `[${new Date().toLocaleTimeString()}] System: WujiHealth Browser initialized`,
     `[${new Date().toLocaleTimeString()}] System: AI agents loaded successfully`
   ]);
+  const [clinicalQuestion, setClinicalQuestion] = useState<string>("");
   
   // Browser history state
   const [history, setHistory] = useState<string[]>([]);
@@ -148,8 +149,9 @@ export default function BrowserShell() {
     setHistoryIndex(history.length);
   };
   
-  const activateXenScribe = () => {
-    // XenScribe tool activation
+  // XenScribe is activated when the user clicks on the XenScribe tab or agent card
+  const handleXenScribeActivation = () => {
+    // Re-using the activateXenScribe logic but with a different function name
     setXenScribeReady(true);
     setAuditLogs(prev => [
       ...prev,
@@ -304,19 +306,47 @@ export default function BrowserShell() {
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     
+    // Clear clinical question when changing tabs
+    setClinicalQuestion("");
+    
     // Handle active tab selection
     if (tab === "Home") {
-      // First check if we need to show consult content
+      // If consult mode is active, ensure we show the consult content
       if (consultMode) {
         setActiveContent('consult');
-      }
-      
-      // Find the appropriate tab to show
-      const homeTab = browserTabs.find(tab => tab.url.includes('dashboard'));
-      if (homeTab) {
-        setActiveBrowserTab(homeTab.id);
-        updateAddressBar(homeTab.url);
-        // Don't set activeContent here, as we want to respect consult mode
+        
+        // Find the XenScribe tab or create one
+        let xenScribeTab = browserTabs.find(tab => tab.url.includes('xenscribe'));
+        if (xenScribeTab) {
+          setActiveBrowserTab(xenScribeTab.id);
+          updateAddressBar(xenScribeTab.url);
+        } else {
+          // Create a new XenScribe tab if it doesn't exist
+          const newTabId = (browserTabs.length + 1).toString();
+          xenScribeTab = {
+            id: newTabId,
+            title: 'XenScribe',
+            url: 'https://wujihealth.com/xenscribe',
+            favicon: '/favicon.ico'
+          };
+          setBrowserTabs([...browserTabs, xenScribeTab]);
+          setActiveBrowserTab(newTabId);
+          updateAddressBar(xenScribeTab.url);
+        }
+        
+        // Log the action
+        setAuditLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] System: Clinical Consult interface activated`
+        ]);
+      } else {
+        // Find the appropriate tab to show for home content
+        const homeTab = browserTabs.find(tab => tab.url.includes('dashboard'));
+        if (homeTab) {
+          setActiveBrowserTab(homeTab.id);
+          updateAddressBar(homeTab.url);
+          setActiveContent('home');
+        }
       }
     } else if (tab === "Agents") {
       // Check if we have an agents tab already
@@ -367,6 +397,13 @@ export default function BrowserShell() {
     handleTabChange(newTab);
   };
 
+  // Add a function to reset the clinicalQuestion and go back to home
+  const resetClinicalQuestion = () => {
+    setClinicalQuestion("");
+    setActiveContent('home');
+    setConsultMode(false);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="flex flex-col border-b border-border bg-card shadow-sm">
@@ -380,6 +417,11 @@ export default function BrowserShell() {
                   setActiveBrowserTab(tab.id);
                   updateAddressBar(tab.url);
                   updateContentBasedOnUrl(tab.url);
+                  
+                  // Call handleXenScribeActivation when XenScribe tab is clicked
+                  if (tab.url.includes('xenscribe')) {
+                    handleXenScribeActivation();
+                  }
                 }}
                 className={cn(
                   "flex items-center space-x-1 py-1.5 px-3 rounded-t-md cursor-pointer min-w-[120px] max-w-[200px] transition-colors group",
@@ -416,6 +458,17 @@ export default function BrowserShell() {
         {/* Navigation and address bar row */}
         <div className="flex items-center px-4 py-2">
           <div className="flex items-center space-x-2">
+            {clinicalQuestion && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={resetClinicalQuestion}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1.5" />
+                Back to Home
+              </Button>
+            )}
             <Button 
               variant="ghost" 
               size="icon" 
@@ -465,38 +518,6 @@ export default function BrowserShell() {
               <ShieldCheck className="w-3 h-3 mr-1" />
               <span>Secure</span>
             </div>
-            <div className="flex items-center space-x-2">
-              {xenScribeReady && (
-                <Button 
-                  variant="outline"
-                  size="sm" 
-                  onClick={activateXenScribe}
-                  className="text-blue-500 border-blue-200 hover:bg-blue-50"
-                >
-                  <FileText className="h-4 w-4 mr-1.5" />
-                  XenScribe
-                </Button>
-              )}
-              
-              {/* Separate button for consult mode */}
-              {consultMode && (
-                <Button 
-                  variant="default"
-                  size="sm" 
-                  onClick={() => {
-                    setActiveContent(consultMode ? 'consult' : 'home');
-                    setAuditLogs(prev => [
-                      ...prev,
-                      `[${new Date().toLocaleTimeString()}] System: Clinical Consult interface activated`
-                    ]);
-                  }}
-                  className="bg-green-500 hover:bg-green-600 text-white"
-                >
-                  <Stethoscope className="h-4 w-4 mr-1.5" />
-                  Consult Mode
-                </Button>
-              )}
-            </div>
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <Settings className="h-5 w-5" />
             </Button>
@@ -517,20 +538,8 @@ export default function BrowserShell() {
               transition={{ duration: 0.3 }}
               className="h-full"
             >
-              {/* Home content */}
-              {activeContent === 'home' && !consultMode && (
-                <HomeContent
-                  handleSearch={handleSearch}
-                  simulationMessages={simulationMessages}
-                  setActiveTab={handleSetActiveTab}
-                  setConsultMode={setConsultMode}
-                  setXenScribeReady={setXenScribeReady}
-                  setAuditLogs={setAuditLogs}
-                />
-              )}
-              
-              {/* Clinical consult content */}
-              {activeContent === 'consult' && (
+              {/* If we have a clinical question, show the ClinicalAgentChat regardless of activeContent */}
+              {clinicalQuestion ? (
                 <div className="flex flex-col items-center justify-center h-full w-full">
                   <div className="w-full max-w-5xl mx-auto flex-1">
                     <Suspense fallback={
@@ -542,97 +551,132 @@ export default function BrowserShell() {
                         </div>
                       </div>
                     }>
-                      <ClinicalAgentChat />
+                      <ClinicalAgentChat initialQuestion={clinicalQuestion} />
                     </Suspense>
                   </div>
                 </div>
-              )}
-              
-              {/* Agents dashboard content */}
-              {activeContent === 'agents' && (
-                <Suspense fallback={
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <div className="animate-pulse flex flex-col items-center gap-3">
-                      <Bot size={40} className="text-primary" />
-                      <div className="text-lg font-medium">Loading AI Agents Dashboard...</div>
-                      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  </div>
-                }>
-                  <AgentsDashboard />
-                </Suspense>
-              )}
-              
-              {/* Insurance content */}
-              {activeContent === 'insurance' && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
-
-              {/* Patient Records content */}
-              {activeContent === 'patientRecords' && (
-                <div className="max-w-5xl mx-auto">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">Patient Records</h2>
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
-                        <RefreshCw className="h-4 w-4 mr-1.5" />
-                        Refresh
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Audit logs display (collapsed by default) */}
-                  <div className="mb-4 bg-muted/30 rounded-md p-2">
-                    <details>
-                      <summary className="text-sm font-medium cursor-pointer">System Logs ({auditLogs.length})</summary>
-                      <div className="mt-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                        {auditLogs.map((log, index) => (
-                          <div key={index} className="py-0.5">{log}</div>
-                        ))}
+              ) : (
+                /* Original content rendering based on activeContent */
+                <>
+                  {/* Home content */}
+                  {activeContent === 'home' && !consultMode && (
+                    <HomeContent
+                      handleSearch={handleSearch}
+                      simulationMessages={simulationMessages}
+                      setActiveTab={handleSetActiveTab}
+                      setConsultMode={setConsultMode}
+                      setXenScribeReady={setXenScribeReady}
+                      setAuditLogs={setAuditLogs}
+                      setClinicalQuestion={setClinicalQuestion}
+                    />
+                  )}
+                  
+                  {/* Clinical consult content */}
+                  {activeContent === 'consult' && (
+                    <div className="flex flex-col items-center justify-center h-full w-full">
+                      <div className="w-full max-w-5xl mx-auto flex-1">
+                        <Suspense fallback={
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <div className="animate-pulse flex flex-col items-center gap-3">
+                              <Bot size={40} className="text-primary" />
+                              <div className="text-lg font-medium">Loading Clinical Consult...</div>
+                              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          </div>
+                        }>
+                          <ClinicalAgentChat initialQuestion={clinicalQuestion} />
+                        </Suspense>
                       </div>
-                    </details>
-                  </div>
-
-                  <div className="bg-card rounded-lg shadow overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted text-muted-foreground">
-                          <tr>
-                            <th className="py-3 px-4 text-left font-medium">Patient ID</th>
-                            <th className="py-3 px-4 text-left font-medium">Name</th>
-                            <th className="py-3 px-4 text-left font-medium">Age</th>
-                            <th className="py-3 px-4 text-left font-medium">Gender</th>
-                            <th className="py-3 px-4 text-left font-medium">Last Visit</th>
-                            <th className="py-3 px-4 text-left font-medium">Primary Diagnosis</th>
-                            <th className="py-3 px-4 text-left font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {[
-                            { id: "PT-3892", name: "John Smith", age: 45, gender: "Male", lastVisit: "2023-03-12", diagnosis: "Hypertension" },
-                            { id: "PT-4102", name: "Maria Garcia", age: 38, gender: "Female", lastVisit: "2023-03-15", diagnosis: "Type 2 Diabetes" },
-                            { id: "PT-3756", name: "Robert Johnson", age: 57, gender: "Male", lastVisit: "2023-03-05", diagnosis: "Osteoarthritis" },
-                            { id: "PT-4238", name: "Jennifer Lee", age: 29, gender: "Female", lastVisit: "2023-03-18", diagnosis: "Asthma" },
-                            { id: "PT-3921", name: "David Williams", age: 62, gender: "Male", lastVisit: "2023-03-09", diagnosis: "COPD" }
-                          ].map((patient, i) => (
-                            <tr key={i} className="hover:bg-muted/50 transition-colors">
-                              <td className="py-3 px-4">{patient.id}</td>
-                              <td className="py-3 px-4 font-medium">{patient.name}</td>
-                              <td className="py-3 px-4">{patient.age}</td>
-                              <td className="py-3 px-4">{patient.gender}</td>
-                              <td className="py-3 px-4">{patient.lastVisit}</td>
-                              <td className="py-3 px-4">{patient.diagnosis}</td>
-                              <td className="py-3 px-4">
-                                <div className="flex space-x-2">
-                                  <button className="text-blue-500 hover:text-blue-700">View</button>
-                                  <button className="text-blue-500 hover:text-blue-700">Edit</button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
                     </div>
-                  </div>
-                </div>
+                  )}
+                  
+                  {/* Agents dashboard content */}
+                  {activeContent === 'agents' && (
+                    <Suspense fallback={
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="animate-pulse flex flex-col items-center gap-3">
+                          <Bot size={40} className="text-primary" />
+                          <div className="text-lg font-medium">Loading AI Agents Dashboard...</div>
+                          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      </div>
+                    }>
+                      <AgentsDashboard />
+                    </Suspense>
+                  )}
+                  
+                  {/* Insurance content */}
+                  {activeContent === 'insurance' && <InsuranceContent agentWorking={agentWorking} setAgentWorking={setAgentWorking} />}
+
+                  {/* Patient Records content */}
+                  {activeContent === 'patientRecords' && (
+                    <div className="max-w-5xl mx-auto">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold">Patient Records</h2>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm">
+                            <RefreshCw className="h-4 w-4 mr-1.5" />
+                            Refresh
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Audit logs display (collapsed by default) */}
+                      <div className="mb-4 bg-muted/30 rounded-md p-2">
+                        <details>
+                          <summary className="text-sm font-medium cursor-pointer">System Logs ({auditLogs.length})</summary>
+                          <div className="mt-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                            {auditLogs.map((log, index) => (
+                              <div key={index} className="py-0.5">{log}</div>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+
+                      <div className="bg-card rounded-lg shadow overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted text-muted-foreground">
+                              <tr>
+                                <th className="py-3 px-4 text-left font-medium">Patient ID</th>
+                                <th className="py-3 px-4 text-left font-medium">Name</th>
+                                <th className="py-3 px-4 text-left font-medium">Age</th>
+                                <th className="py-3 px-4 text-left font-medium">Gender</th>
+                                <th className="py-3 px-4 text-left font-medium">Last Visit</th>
+                                <th className="py-3 px-4 text-left font-medium">Primary Diagnosis</th>
+                                <th className="py-3 px-4 text-left font-medium">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {[
+                                { id: "PT-3892", name: "John Smith", age: 45, gender: "Male", lastVisit: "2023-03-12", diagnosis: "Hypertension" },
+                                { id: "PT-4102", name: "Maria Garcia", age: 38, gender: "Female", lastVisit: "2023-03-15", diagnosis: "Type 2 Diabetes" },
+                                { id: "PT-3756", name: "Robert Johnson", age: 57, gender: "Male", lastVisit: "2023-03-05", diagnosis: "Osteoarthritis" },
+                                { id: "PT-4238", name: "Jennifer Lee", age: 29, gender: "Female", lastVisit: "2023-03-18", diagnosis: "Asthma" },
+                                { id: "PT-3921", name: "David Williams", age: 62, gender: "Male", lastVisit: "2023-03-09", diagnosis: "COPD" }
+                              ].map((patient, i) => (
+                                <tr key={i} className="hover:bg-muted/50 transition-colors">
+                                  <td className="py-3 px-4">{patient.id}</td>
+                                  <td className="py-3 px-4 font-medium">{patient.name}</td>
+                                  <td className="py-3 px-4">{patient.age}</td>
+                                  <td className="py-3 px-4">{patient.gender}</td>
+                                  <td className="py-3 px-4">{patient.lastVisit}</td>
+                                  <td className="py-3 px-4">{patient.diagnosis}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex space-x-2">
+                                      <button className="text-blue-500 hover:text-blue-700">View</button>
+                                      <button className="text-blue-500 hover:text-blue-700">Edit</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           </AnimatePresence>

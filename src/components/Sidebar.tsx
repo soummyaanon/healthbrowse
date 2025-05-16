@@ -72,7 +72,19 @@ export default function Sidebar({ tabs, activeTab, setActiveTab, initialOpen = t
                     <input
                       type="checkbox"
                       checked={consultMode}
-                      onChange={(e) => setConsultMode(e.target.checked)}
+                      onChange={(e) => {
+                        // Set consult mode
+                        setConsultMode(e.target.checked);
+                        // When turning on consult mode, also force a tab change to refresh
+                        if (e.target.checked) {
+                          // First go to another tab, then back to home
+                          // This trick helps ensure the content updates properly
+                          if (activeTab === "Home") {
+                            setActiveTab("Agents");
+                            setTimeout(() => setActiveTab("Home"), 10);
+                          }
+                        }
+                      }}
                       className="ml-2"
                     />
                   </div>
