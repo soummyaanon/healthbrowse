@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-
   ClipboardCheck, 
   Bot, 
   RefreshCw, 
   AlertTriangle, 
-
   Info,
   ChevronRight,
   ChevronDown,
   Edit,
-  Save
+  Save,
+  Copy,
+  Check,
+  Book,
+  ThumbsUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +111,25 @@ export default function XenCDI() {
   const [editedNote, setEditedNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
+  const [improvementScore, setImprovementScore] = useState(0);
+  const [showCopied, setShowCopied] = useState(false);
+  const [appliedSuggestions, setAppliedSuggestions] = useState<number[]>([]);
+  const [beforeAfterView, setBeforeAfterView] = useState(false);
+  const [beforeNote, setBeforeNote] = useState("");
+
+  // Calculate scores based on issues
+  useEffect(() => {
+    if (issues.length > 0) {
+      // Calculate improvement potential score
+      const maxScore = 100;
+      const deduction = issues.reduce((total, issue) => {
+        return total + (issue.severity === 'high' ? 25 : issue.severity === 'medium' ? 15 : 5);
+      }, 0);
+      
+      const calculatedScore = Math.max(0, maxScore - deduction);
+      setImprovementScore(calculatedScore);
+    }
+  }, [issues]);
 
   const handleAnalyzeNote = () => {
     setIsAnalyzing(true);
@@ -135,6 +156,7 @@ export default function XenCDI() {
   };
   
   const startEdit = () => {
+    setBeforeNote(clinicalNote);
     setEditedNote(clinicalNote);
     setIsEditing(true);
     setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenCDI: Started note editing`]);
@@ -149,13 +171,39 @@ export default function XenCDI() {
     handleAnalyzeNote();
   };
   
-  const applySuggestion = (suggestion: string) => {
+  const applySuggestion = (suggestion: string, issueId: number) => {
     if (isEditing) {
       // In a real implementation, we would intelligently apply the suggestion
       // For demo, we'll just append it to the note
       setEditedNote(prev => prev + "\n\n/* ADDED PER CDI: " + suggestion + " */");
       setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenCDI: Applied suggestion to note`]);
+      
+      // Track which suggestions have been applied
+      if (!appliedSuggestions.includes(issueId)) {
+        setAppliedSuggestions(prev => [...prev, issueId]);
+      }
     }
+  };
+  
+  const handleCopyNote = () => {
+    navigator.clipboard.writeText(clinicalNote);
+    setShowCopied(true);
+    setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenCDI: Copied note to clipboard`]);
+    setTimeout(() => setShowCopied(false), 2000);
+  };
+  
+  const getQualityLabel = () => {
+    if (improvementScore >= 90) return "Excellent";
+    if (improvementScore >= 70) return "Good";
+    if (improvementScore >= 50) return "Fair";
+    return "Needs Improvement";
+  };
+  
+  const getQualityColor = () => {
+    if (improvementScore >= 90) return "text-green-500";
+    if (improvementScore >= 70) return "text-emerald-500";
+    if (improvementScore >= 50) return "text-amber-500";
+    return "text-red-500";
   };
 
   return (
@@ -172,7 +220,35 @@ export default function XenCDI() {
       <div className="flex flex-1 overflow-hidden">
         <div className="w-2/3 p-4 flex flex-col overflow-hidden">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-medium">Clinical Note</h3>
+            <div className="flex items-center">
+              <h3 className="font-medium">Clinical Note</h3>
+              {!isEditing && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyNote}
+                  className="ml-2 h-8"
+                >
+                  {showCopied ? (
+                    <Check className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-1" />
+                  )}
+                  {showCopied ? "Copied!" : "Copy"}
+                </Button>
+              )}
+              {beforeNote && !isEditing && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setBeforeAfterView(!beforeAfterView)}
+                  className="ml-2 h-8"
+                >
+                  <Book className="h-4 w-4 mr-1" />
+                  {beforeAfterView ? "Hide Changes" : "Show Changes"}
+                </Button>
+              )}
+            </div>
             <div className="flex space-x-2">
               {!isEditing && (
                 <>
@@ -226,25 +302,49 @@ export default function XenCDI() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-auto border rounded-md">
-            {isEditing ? (
-              <Textarea
-                value={editedNote}
-                onChange={(e) => setEditedNote(e.target.value)}
-                className="h-full w-full border-0 rounded-none font-mono text-sm resize-none p-4"
-              />
+          <div className="flex-1 overflow-auto">
+            {beforeAfterView && !isEditing ? (
+              <div className="flex h-full space-x-2">
+                <div className="w-1/2 border rounded-md overflow-auto">
+                  <div className="bg-muted/30 p-2 text-xs font-medium">Before</div>
+                  <div className="p-4 font-mono text-sm whitespace-pre-wrap text-muted-foreground">
+                    {beforeNote}
+                  </div>
+                </div>
+                <div className="w-1/2 border rounded-md overflow-auto">
+                  <div className="bg-green-50 p-2 text-xs font-medium dark:bg-green-900/20">After (Improved)</div>
+                  <div className="p-4 font-mono text-sm whitespace-pre-wrap">
+                    {clinicalNote}
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div className="p-4 font-mono text-sm whitespace-pre-wrap">
-                {clinicalNote}
+              <div className="border rounded-md h-full">
+                {isEditing ? (
+                  <Textarea
+                    value={editedNote}
+                    onChange={(e) => setEditedNote(e.target.value)}
+                    className="h-full w-full border-0 rounded-none font-mono text-sm resize-none p-4"
+                  />
+                ) : (
+                  <div className="p-4 font-mono text-sm whitespace-pre-wrap h-full overflow-auto">
+                    {clinicalNote}
+                  </div>
+                )}
               </div>
             )}
           </div>
           
-          {issues.length > 0 && !isEditing && (
+          {issues.length > 0 && !isEditing && !beforeAfterView && (
             <div className="mt-4">
               <h3 className="font-medium mb-2 flex items-center">
                 <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />
                 Documentation Issues ({issues.length})
+                {appliedSuggestions.length > 0 && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded dark:bg-green-900/30 dark:text-green-400">
+                    {appliedSuggestions.length} Resolved
+                  </span>
+                )}
               </h3>
               
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -253,8 +353,12 @@ export default function XenCDI() {
                     key={issue.id} 
                     className={cn(
                       "border rounded-md overflow-hidden transition-all",
-                      issue.severity === "high" ? "border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800" : 
-                      issue.severity === "medium" ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800" : 
+                      appliedSuggestions.includes(issue.id) 
+                        ? "border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800" :
+                      issue.severity === "high" 
+                        ? "border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800" : 
+                      issue.severity === "medium" 
+                        ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800" : 
                       "border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800"
                     )}
                   >
@@ -263,14 +367,25 @@ export default function XenCDI() {
                       onClick={() => toggleIssueExpansion(issue.id)}
                     >
                       <div className="flex items-center">
-                        {issue.severity === "high" ? (
+                        {appliedSuggestions.includes(issue.id) ? (
+                          <ThumbsUp className="h-4 w-4 text-green-500 mr-2" />
+                        ) : issue.severity === "high" ? (
                           <AlertTriangle className="h-4 w-4 text-red-500 mr-2" />
                         ) : issue.severity === "medium" ? (
                           <Info className="h-4 w-4 text-amber-500 mr-2" />
                         ) : (
                           <Info className="h-4 w-4 text-blue-500 mr-2" />
                         )}
-                        <span className="font-medium">{issue.description}</span>
+                        <span className="font-medium">
+                          {appliedSuggestions.includes(issue.id) ? (
+                            <span className="line-through text-muted-foreground">{issue.description}</span>
+                          ) : (
+                            issue.description
+                          )}
+                        </span>
+                        {appliedSuggestions.includes(issue.id) && (
+                          <span className="ml-2 text-xs text-green-600">Resolved</span>
+                        )}
                       </div>
                       <div className="flex items-center">
                         <span className="text-xs text-muted-foreground mr-2">{issue.location}</span>
@@ -292,10 +407,18 @@ export default function XenCDI() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => applySuggestion(issue.suggestion)}
-                            disabled={!isEditing}
+                            onClick={() => applySuggestion(issue.suggestion, issue.id)}
+                            disabled={!isEditing || appliedSuggestions.includes(issue.id)}
+                            className={appliedSuggestions.includes(issue.id) ? "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400" : ""}
                           >
-                            Apply Suggestion
+                            {appliedSuggestions.includes(issue.id) ? (
+                              <>
+                                <Check className="h-4 w-4 mr-1" />
+                                Applied
+                              </>
+                            ) : (
+                              "Apply Suggestion"
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -312,16 +435,11 @@ export default function XenCDI() {
             <h3 className="font-semibold mb-2">Documentation Quality</h3>
             {issues.length > 0 ? (
               <div className="border rounded-md p-4 bg-background">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4 border-b pb-3">
                   <span className="text-sm font-medium">Overall Score:</span>
-                  <div className="text-sm font-medium">
-                    {issues.length <= 1 ? (
-                      <span className="text-green-500">Excellent</span>
-                    ) : issues.length <= 3 ? (
-                      <span className="text-amber-500">Good</span>
-                    ) : (
-                      <span className="text-red-500">Needs Improvement</span>
-                    )}
+                  <div className={cn("text-lg font-semibold flex items-center", getQualityColor())}>
+                    {improvementScore}%
+                    <span className="ml-2 text-xs font-normal bg-muted px-2 py-0.5 rounded">{getQualityLabel()}</span>
                   </div>
                 </div>
                 
@@ -394,6 +512,18 @@ export default function XenCDI() {
                     </div>
                   </div>
                 </div>
+                
+                {(appliedSuggestions.length > 0) && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md text-sm dark:bg-green-900/20 dark:border-green-800">
+                    <div className="font-medium text-green-800 dark:text-green-300 mb-1 flex items-center">
+                      <ThumbsUp className="h-4 w-4 mr-1" />
+                      Documentation Improved
+                    </div>
+                    <p className="text-green-700 dark:text-green-400">
+                      {appliedSuggestions.length} out of {issues.length} issues have been addressed, improving coding accuracy and compliance.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="border rounded-md flex items-center justify-center p-6 bg-background text-muted-foreground">

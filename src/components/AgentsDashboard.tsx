@@ -3,7 +3,7 @@
 import React, { useState, lazy, Suspense, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileText, DollarSign, Search, ClipboardCheck, RefreshCw, ChevronLeft, ChevronRight, Bot, BarChart4, Users, CheckCircle, Clock, PieChart, ArrowRight } from "lucide-react";
+import { FileText, DollarSign, Search, ClipboardCheck, RefreshCw, ChevronLeft, ChevronRight, Bot, BarChart4, Users, CheckCircle, Clock, PieChart, ArrowRight, MessageCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,7 @@ const AIAssistant = lazy(() => import("@/components/kokonutui/AIAssistant"));
 const XenRCM = lazy(() => import("@/components/kokonutui/XenRCM"));
 const XenSearch = lazy(() => import("@/components/kokonutui/XenSearch"));
 const XenCDI = lazy(() => import("@/components/kokonutui/XenCDI"));
+const Whisper = lazy(() => import("@/components/kokonutui/Whisper"));
 
 // Chart data type
 type ChartData = {
@@ -36,7 +37,7 @@ type AgentPerformance = {
 }
 
 // Define agent types
-export type AgentType = "scribe" | "rcm" | "search" | "cdi" | "dashboard";
+export type AgentType = "scribe" | "rcm" | "search" | "cdi" | "whisper" | "dashboard";
 
 // Define agent info type
 type AgentInfo = {
@@ -287,6 +288,31 @@ export default function AgentsDashboard() {
         { month: "Apr", tasks: 410 },
         { month: "May", tasks: 450 },
         { month: "Jun", tasks: 520 }
+      ]
+    },
+    whisper: {
+      name: "Whisper",
+      icon: <MessageCircle className="h-5 w-5 text-emerald-500" />,
+      description: "Smart inbox assistant that helps manage and prioritize patient messages, categorize by urgency, and suggest responses.",
+      context: "inbox",
+      status: "available",
+      metrics: {
+        accuracy: "95%",
+        completionTime: "30 sec",
+        success: "98%"
+      },
+      usage: {
+        users: 920,
+        tasks: 5680,
+        growth: "+18%"
+      },
+      performance: [
+        { month: "Jan", tasks: 340 },
+        { month: "Feb", tasks: 410 },
+        { month: "Mar", tasks: 480 },
+        { month: "Apr", tasks: 530 },
+        { month: "May", tasks: 590 },
+        { month: "Jun", tasks: 650 }
       ]
     },
     dashboard: {
@@ -1248,6 +1274,30 @@ export default function AgentsDashboard() {
                 </div>
               }>
                 <XenCDI />
+              </Suspense>
+            )}
+            
+            {activeAgent === "whisper" && (
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-full bg-gradient-to-b from-background to-muted/20">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative h-14 w-14">
+                      <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+                      <div className="absolute inset-2 rounded-full border-2 border-emerald-500/50 border-b-transparent animate-spin animate-reverse"></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <MessageCircle className="h-6 w-6 text-emerald-500 animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="text-xl font-semibold text-emerald-600">Loading Whisper</div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse delay-75"></div>
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse delay-150"></div>
+                    </div>
+                  </div>
+                </div>
+              }>
+                <Whisper />
               </Suspense>
             )}
           </motion.div>

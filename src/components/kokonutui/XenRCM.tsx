@@ -338,7 +338,7 @@ const useTabContexts = (initialState: TabContextData[] = []) => {
       const updated = [...prev];
       updated[activeContextTab] = {
         ...updated[activeContextTab],
-        auditLogs: [...updated[activeContextTab].auditLogs, `[${new Date().toLocaleTimeString()}] XenRCM: ${message}`]
+        auditLogs: [...updated[activeContextTab].auditLogs, `[${new Date().toLocaleTimeString()}] Echo: ${message}`]
       };
       return updated;
     });
@@ -416,13 +416,24 @@ const useTabContexts = (initialState: TabContextData[] = []) => {
   };
 };
 
-export default function XenRCM() {
+export default function Echo() {
   const [activeTab, setActiveTab] = useState("denial");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isClinicalDataVisible, setIsClinicalDataVisible] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [appealApplied, setAppealApplied] = useState(false);
+
+  // Add a new state for auto-detection status
+  const [autoDetectionStatus, setAutoDetectionStatus] = useState<{
+    active: boolean;
+    message: string;
+    type: 'denial' | 'clinical' | 'both' | null;
+  }>({
+    active: false,
+    message: '',
+    type: null
+  });
 
   // Use custom hooks
   const {
@@ -594,7 +605,9 @@ export default function XenRCM() {
     updateAnalysisStep, 
     setShowAnalysisSteps, 
     updateCurrentContext, 
-    analysisSteps
+    analysisSteps,
+    setIsGenerating,
+    setIsClinicalDataVisible
   ]);
 
   // Handle generating appeal with React hooks
@@ -619,30 +632,83 @@ export default function XenRCM() {
       
       // Extract clinical summary from the clinical note
       let clinicalSummary = "Patient presented with symptoms requiring medical evaluation and treatment.";
+      let diagnosisList: string[] = [];
+      let visitDate = "";
+      let clinicalEvidence = "";
       
       if (clinicalText) {
+        // Try to extract date
+        const dateMatch = clinicalText.match(/DATE OF SERVICE: (.+)/i);
+        if (dateMatch && dateMatch[1]) {
+          visitDate = dateMatch[1].trim();
+          addLog(`Extracted visit date: ${visitDate}`);
+        }
+        
         // Try to extract symptoms from subjective section
-        const subjectiveMatch = clinicalText.match(/SUBJECTIVE:([\s\S]*?)(?=OBJECTIVE:|$)/);
+        const subjectiveMatch = clinicalText.match(/SUBJECTIVE:([\s\S]*?)(?=OBJECTIVE:|$)/i);
         if (subjectiveMatch && subjectiveMatch[1]) {
           clinicalSummary = subjectiveMatch[1].trim();
+          addLog("Extracted subjective findings");
+        }
+        
+        // Extract vital signs and examination findings for evidence
+        const objectiveMatch = clinicalText.match(/OBJECTIVE:([\s\S]*?)(?=ASSESSMENT:|$)/i);
+        if (objectiveMatch && objectiveMatch[1]) {
+          const vitalsMatch = objectiveMatch[1].match(/BP: (.+?)(?:,|$)/i);
+          const examMatch = objectiveMatch[1].match(/Physical examination (.+?)(?:\.|$)/i);
+          
+          if (vitalsMatch || examMatch) {
+            clinicalEvidence = "Examination findings include ";
+            if (vitalsMatch) clinicalEvidence += `vital signs (${vitalsMatch[1].trim()}) `;
+            if (examMatch) clinicalEvidence += `and ${examMatch[1].trim().toLowerCase()}`;
+            clinicalEvidence += ".";
+            addLog("Extracted objective findings for evidence");
+          }
         }
         
         // Also include assessment if available
-        const assessmentMatch = clinicalText.match(/ASSESSMENT:([\s\S]*?)(?=PLAN:|$)/);
+        const assessmentMatch = clinicalText.match(/ASSESSMENT:([\s\S]*?)(?=PLAN:|$)/i);
         if (assessmentMatch && assessmentMatch[1]) {
-          clinicalSummary += "\n\nDiagnoses: " + assessmentMatch[1].trim();
+          const diagnoses = assessmentMatch[1].trim().split(/\d+\.\s+/).filter(Boolean);
+          diagnosisList = diagnoses.map(d => d.trim());
+          addLog(`Extracted ${diagnosisList.length} diagnoses from assessment`);
         }
       }
+      
+      // Create diagnosis text
+      const diagnosisText = diagnosisList.length > 0 
+        ? `The patient was diagnosed with ${diagnosisList.join(" and ")}.` 
+        : "";
       
       addAgentMessage("Clinical context extracted. Formulating appeal letter based on " + 
         analyzedDenial.denialType + " denial type.");
       
       // Create authorization text if relevant
-      const authorizationText = analyzedDenial.denialType === "Prior Authorization" 
-        ? "- Documentation showing medical urgency that precluded prior authorization\n- Evidence of attempt to notify insurance"
-        : "";
+      let authorizationText = "";
+      if (analyzedDenial.denialType === "Prior Authorization") {
+        authorizationText = "- Documentation showing medical urgency that precluded prior authorization\n- Evidence of attempt to notify insurance";
+      } else if (analyzedDenial.denialType === "Medical Necessity") {
+        authorizationText = "- Evidence-based guidelines supporting medical necessity for this level of service\n- Clinical documentation of patient complexity";
+      }
       
       await simulateThinking("Crafting appeal letter with appropriate citations and evidence...", 2000);
+      
+      // Create custom appeal text based on denial type
+      let customAppealText = "";
+      
+      switch (analyzedDenial.denialType) {
+        case "Medical Necessity":
+          customAppealText = `This visit met medical necessity criteria as defined by CPT guidelines for a level ${analyzedDenial.procedure.includes("99214") ? "4" : "3"} visit. ${clinicalEvidence} The documentation clearly demonstrates the moderate complexity decision-making required for this patient with multiple chronic conditions.`;
+          break;
+        case "Prior Authorization":
+          customAppealText = `While prior authorization was not obtained before this service, the clinical situation warranted immediate care, and retrospective review is appropriate. The patient required prompt evaluation and treatment that could not be delayed.`;
+          break;
+        case "Coding Error":
+          customAppealText = `The documentation fully supports the CPT code assigned. All required elements for this code are present in the documentation, including the history, examination, and medical decision-making components.`;
+          break;
+        default:
+          customAppealText = `After a thorough review of the documentation and applicable guidelines, we believe this claim meets all requirements for coverage and payment under the patient's plan.`;
+      }
       
       // Create new appeal from template with all fields filled in
       const newAppeal = MOCK_APPEAL_TEMPLATE
@@ -650,12 +716,12 @@ export default function XenRCM() {
         .replace("[PAYER]", analyzedDenial.payer)
         .replace("[CLAIM]", analyzedDenial.claimNumber)
         .replace("[PATIENT]", analyzedDenial.patient)
-        .replace("[DOS]", analyzedDenial.dateOfService)
+        .replace("[DOS]", visitDate || analyzedDenial.dateOfService)
         .replace("[PROVIDER]", analyzedDenial.provider)
         .replace("[DENIAL_REASON]", analyzedDenial.denialReason)
-        .replace("[CLINICAL_SUMMARY]", clinicalSummary)
+        .replace("[CLINICAL_SUMMARY]", clinicalSummary + "\n\n" + diagnosisText + "\n\n" + clinicalEvidence)
         .replace("[AUTHORIZATION_TEXT]", authorizationText)
-        .replace("[APPEAL_STRATEGY]", analyzedDenial.appealStrategy);
+        .replace("[APPEAL_STRATEGY]", customAppealText + "\n\n" + analyzedDenial.appealStrategy);
       
       addAgentMessage("Appeal letter generated successfully. Here it is:", 'complete');
       
@@ -667,8 +733,8 @@ export default function XenRCM() {
         setGenerationStep('complete');
       });
       
-      addLog("Appeal letter generated");
-      addLog("Added supporting clinical documentation");
+      addLog("Appeal letter generated with customized strategy");
+      addLog(`Included ${diagnosisList.length} diagnoses and supporting evidence`);
     } catch (error) {
       console.error("Error generating appeal:", error);
       addLog("Error generating appeal letter");
@@ -741,7 +807,7 @@ export default function XenRCM() {
   // Update document title effect
   useEffect(() => {
     if (tabContexts.some(ctx => ctx.analyzedDenial !== null)) {
-      document.title = "Pending Appeals - XenRCM";
+      document.title = "Pending Appeals - Echo";
     } else {
       document.title = "Healthcare Browser";
     }
@@ -756,11 +822,11 @@ export default function XenRCM() {
     <div className="flex flex-col h-full">
       <div className="border-b p-4 bg-muted/20">
         <h1 className="text-2xl font-bold flex items-center">
-          <DollarSign className="mr-2 h-6 w-6 text-green-500" />
-          XenRCM
-          <span className="ml-2 text-sm font-normal text-muted-foreground">Revenue Cycle Management Assistant</span>
+          <DollarSign className="mr-2 h-6 w-6 text-purple-500" />
+          Echo
+          <span className="ml-2 text-sm font-normal text-muted-foreground">Denial Management Assistant</span>
         </h1>
-        <p className="text-muted-foreground">Automate denial management and generate appeal letters</p>
+        <p className="text-muted-foreground">Automatically analyze denials and generate appeal letters</p>
       </div>
       
       {/* Context tabs for multiple denials */}
@@ -832,8 +898,168 @@ export default function XenRCM() {
             <Layers className="h-3.5 w-3.5" />
             <span>New Cardiac MRI</span>
           </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="text-xs gap-1 h-7"
+            onClick={() => {
+              // Show auto-detection status
+              setAutoDetectionStatus({
+                active: true,
+                message: 'Scanning browser tabs for denial information...',
+                type: 'denial'
+              });
+          
+              // Simulate detection from payer portal
+              const mockPortalHTML = `
+                <div class="denial-details">
+                  <h2>Claim Denial Notice</h2>
+                  <div class="detail-row">
+                    <span class="label">Claim Number:</span>
+                    <span class="value">ABC12345678</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Patient:</span>
+                    <span class="value">John Smith</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">DOS:</span>
+                    <span class="value">05/15/2024</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Provider:</span>
+                    <span class="value">Dr. Jennifer Adams</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">CPT:</span>
+                    <span class="value">99214</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Status:</span>
+                    <span class="value denied">Denied due to lack of medical necessity documentation</span>
+                  </div>
+                </div>
+              `;
+              
+              // Directly extract info and set denial text
+              const denialText = `Claim #: ABC12345678
+Date of Service: 05/15/2024
+Provider: Dr. Jennifer Adams
+Patient: John Smith
+Procedure: Office Visit (99214)
+Denial Reason: lack of medical necessity documentation
+Payer: Blue Cross Blue Shield
+Denial Date: ${new Date().toLocaleDateString()}
+Amount: $175.00
+`;
+              
+              // Update context directly
+              updateCurrentContext("denialText", denialText);
+              addLog("Detected denial information from payer portal");
+              
+              // Auto-analyze after a short delay
+              setTimeout(() => handleAnalyzeDenial(), 500);
+              
+              // After delay, simulate EHR data detection
+              setTimeout(() => {
+                setAutoDetectionStatus({
+                  active: true,
+                  message: 'Extracting clinical data from patient record...',
+                  type: 'clinical'
+                });
+                
+                // Extract clinical data (simulated)
+                const mockEHRHTML = `
+                  <div class="patient-record">
+                    <h2>Patient Encounter</h2>
+                    <div class="patient-info">
+                      <div>PATIENT: John Smith</div>
+                      <div>DOB: 09/12/1965</div>
+                      <div>DATE OF SERVICE: 05/15/2024</div>
+                    </div>
+                    <div class="soap-note">
+                      <div>SUBJECTIVE: Patient presents with ongoing hypertension management and reports occasional headaches.</div>
+                      <div>OBJECTIVE: BP 142/88, P 72, RR 16, T 98.6F. Physical exam reveals normal heart sounds.</div>
+                      <div>ASSESSMENT: 
+                        1. Essential hypertension (I10) - poorly controlled
+                        2. Type 2 diabetes mellitus (E11.9) - stable
+                      </div>
+                      <div>PLAN: Adjust medication. Follow up in 3 months.</div>
+                    </div>
+                  </div>
+                `;
+                
+                // Extract clinical data (simulated)
+                const clinicalText = `PATIENT: John Smith
+DOB: 09/12/1965
+DATE OF SERVICE: 05/15/2024
+
+SUBJECTIVE:
+Patient presents with ongoing hypertension management and reports occasional headaches.
+
+OBJECTIVE:
+BP 142/88, P 72, RR 16, T 98.6F. Physical exam reveals normal heart sounds.
+
+ASSESSMENT:
+1. Essential hypertension (I10) - poorly controlled
+2. Type 2 diabetes mellitus (E11.9) - stable
+
+PLAN:
+Adjust medication. Follow up in 3 months.`;
+                
+                updateCurrentContext("clinicalText", clinicalText);
+                addLog("Extracted clinical context from patient record");
+                addLog("Found diagnoses: I10, E11.9");
+                setIsClinicalDataVisible(true);
+                
+                // After all detection is complete, update status
+                setTimeout(() => {
+                  setAutoDetectionStatus({
+                    active: true,
+                    message: 'Detection complete - Found denial and clinical data',
+                    type: 'both'
+                  });
+                  
+                  // Reset after a few seconds
+                  setTimeout(() => {
+                    setAutoDetectionStatus({
+                      active: false,
+                      message: '',
+                      type: null
+                    });
+                  }, 5000);
+                }, 500);
+              }, 2000);
+            }}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Demo Auto-Detection</span>
+          </Button>
         </div>
       </div>
+      
+      {/* Add the visual indicator in the UI, just below the TabsList */}
+      <AnimatePresence>
+        {autoDetectionStatus.active && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 mb-3 text-sm rounded-md border",
+              autoDetectionStatus.type === 'denial' ? "bg-blue-50 border-blue-200 text-blue-700" :
+              autoDetectionStatus.type === 'clinical' ? "bg-green-50 border-green-200 text-green-700" :
+              "bg-purple-50 border-purple-200 text-purple-700"
+            )}
+          >
+            <div className="relative flex-shrink-0">
+              <Sparkles className="h-4 w-4" />
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-blue-400 animate-ping" />
+            </div>
+            <div>{autoDetectionStatus.message}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       <div className="flex flex-1 overflow-hidden">
         <div className="w-2/3 p-4 border-r overflow-auto">

@@ -5,7 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Mic, PauseCircle, FileText, FileCheck, Code, ClipboardCheck, RefreshCw,  Check, Wand2, AlertCircle, SendHorizonal, X } from "lucide-react";
+import {
+  Mic,
+  PauseCircle,
+  FileText,
+  FileCheck,
+  Code,
+  ClipboardCheck,
+  RefreshCw,
+  Check,
+  Wand2,
+  AlertCircle,
+  SendHorizonal,
+  X,
+  Sparkles,
+  Volume2,
+  Volume1,
+  BookmarkPlus,
+  Clock,
+  DownloadCloud
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 
@@ -62,6 +81,24 @@ const MOCK_TRANSCRIPT_SEGMENTS = [
   "Patient has been taking over-the-counter ibuprofen with minimal relief."
 ];
 
+// Mock transcription accuracy data
+const MOCK_ACCURACY_METRICS = {
+  confidence: 0.94,
+  noiseLevel: 0.12,
+  recognizedTerms: 42,
+  medicalTermsAccuracy: 0.97,
+  processingTime: "1.2s",
+};
+
+// Mock clinical key phrases
+const MOCK_CLINICAL_PHRASES = [
+  { text: "recurring headaches", relevance: 0.95 },
+  { text: "throbbing pain", relevance: 0.88 },
+  { text: "temples and behind eyes", relevance: 0.85 },
+  { text: "severity 4-8/10", relevance: 0.92 },
+  { text: "minimal relief with ibuprofen", relevance: 0.89 }
+];
+
 export default function AIAssistant() {
   const [isRecording, setIsRecording] = useState(false);
   const [activeTab, setActiveTab] = useState("note");
@@ -81,6 +118,16 @@ export default function AIAssistant() {
     medications: ["Loratadine 10mg daily PRN"]
   });
   const [transcriptInput, setTranscriptInput] = useState("");
+  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+  const [showAccuracyMetrics, setShowAccuracyMetrics] = useState(false);
+  const [keyPhrases, setKeyPhrases] = useState<typeof MOCK_CLINICAL_PHRASES>([]);
+  const [saveFormats, setSaveFormats] = useState<string[]>([]);
+  const [showFormatOptions, setShowFormatOptions] = useState(false);
+  const [savedNotes, setSavedNotes] = useState<{id: number, title: string, timestamp: string}[]>([]);
+  const [showSavedAlert, setShowSavedAlert] = useState(false);
+  const [noteSaveTitle, setNoteSaveTitle] = useState("");
+  const [audioPaused, setAudioPaused] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(0.7);
   
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   
@@ -111,7 +158,7 @@ export default function AIAssistant() {
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
-    if (isRecording && liveTranscriptIndex < MOCK_TRANSCRIPT_SEGMENTS.length) {
+    if (isRecording && !audioPaused && liveTranscriptIndex < MOCK_TRANSCRIPT_SEGMENTS.length) {
       interval = setInterval(() => {
         setTranscript(prev => [...prev, MOCK_TRANSCRIPT_SEGMENTS[liveTranscriptIndex]]);
         setLiveTranscriptIndex(prev => prev + 1);
@@ -123,16 +170,18 @@ export default function AIAssistant() {
     }
     
     return () => clearInterval(interval);
-  }, [isRecording, liveTranscriptIndex]);
+  }, [isRecording, liveTranscriptIndex, audioPaused]);
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
+    setAudioPaused(false);
     
     if (!isRecording) {
       // Start recording
       setTranscript([]);
       setLiveTranscriptIndex(0);
       setAuditLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] XenScribe: Started recording`]);
+      setKeyPhrases([]);
     } else {
       // Stop recording and process
       setIsProcessing(true);
@@ -144,10 +193,13 @@ export default function AIAssistant() {
         const generatedNote = generateSoapNote(transcript);
         setNoteContent(generatedNote);
         setIsProcessing(false);
+        setKeyPhrases(MOCK_CLINICAL_PHRASES);
+        setShowAccuracyMetrics(true);
         setAuditLogs(prev => [
           ...prev, 
           `[${new Date().toLocaleTimeString()}] XenScribe: Audio processed successfully`,
-          `[${new Date().toLocaleTimeString()}] XenScribe: Generated SOAP note with ${transcript.length} data points`
+          `[${new Date().toLocaleTimeString()}] XenScribe: Generated SOAP note with ${transcript.length} data points`,
+          `[${new Date().toLocaleTimeString()}] XenScribe: Identified ${MOCK_CLINICAL_PHRASES.length} key clinical phrases`
         ]);
         
         // Switch to the note tab to show the generated note
@@ -190,6 +242,39 @@ export default function AIAssistant() {
       ...prev, 
       `[${new Date().toLocaleTimeString()}] XenScribe: ${prev.includes(code) ? "Removed" : "Added"} code ${code}`
     ]);
+  };
+  
+  const toggleAudioPaused = () => {
+    setAudioPaused(!audioPaused);
+    setAuditLogs(prev => [
+      ...prev, 
+      `[${new Date().toLocaleTimeString()}] XenScribe: ${!audioPaused ? "Paused" : "Resumed"} audio recording`
+    ]);
+  };
+  
+  const handleSaveNote = () => {
+    setShowFormatOptions(true);
+    setSaveFormats(["EHR Format", "Word Document", "PDF", "Plain Text"]);
+  };
+  
+  const handleSaveFormat = (format: string) => {
+    setShowFormatOptions(false);
+    
+    // Simulate saving the note
+    const newSavedNote = {
+      id: savedNotes.length + 1,
+      title: noteSaveTitle || `SOAP Note - ${patientContext.name} - ${new Date().toLocaleDateString()}`,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    
+    setSavedNotes(prev => [...prev, newSavedNote]);
+    setShowSavedAlert(true);
+    setAuditLogs(prev => [
+      ...prev, 
+      `[${new Date().toLocaleTimeString()}] XenScribe: Saved note as ${format}: "${newSavedNote.title}"`
+    ]);
+    
+    setTimeout(() => setShowSavedAlert(false), 3000);
   };
   
   const generateSoapNote = (transcriptSegments: string[]) => {
@@ -288,6 +373,17 @@ ${subjectiveContent}
                       <FileCheck className="mr-2 h-4 w-4" />
                       Copy
                     </Button>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-muted-foreground"
+                      onClick={handleSaveNote}
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      Save
+                    </Button>
+                    
                     <Button 
                       variant={isRecording ? "destructive" : "default"} 
                       size="sm"
@@ -315,32 +411,108 @@ ${subjectiveContent}
                 )}
                 
                 {activeTab === "transcript" && (
-                  <Button 
-                    variant={isRecording ? "destructive" : "default"} 
-                    size="sm"
-                    onClick={toggleRecording}
-                    disabled={isProcessing}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : isRecording ? (
-                      <>
-                        <PauseCircle className="mr-2 h-4 w-4" />
-                        Stop Recording
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="mr-2 h-4 w-4" />
-                        Start Recording
-                      </>
+                  <>
+                    {isRecording && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleAudioPaused}
+                        disabled={isProcessing}
+                      >
+                        {audioPaused ? (
+                          <>
+                            <Volume1 className="mr-2 h-4 w-4" />
+                            Resume
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="mr-2 h-4 w-4" />
+                            Pause
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                    <Button 
+                      variant={isRecording ? "destructive" : "default"} 
+                      size="sm"
+                      onClick={toggleRecording}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : isRecording ? (
+                        <>
+                          <PauseCircle className="mr-2 h-4 w-4" />
+                          Stop Recording
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="mr-2 h-4 w-4" />
+                          Start Recording
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
+            
+            {showFormatOptions && (
+              <div className="absolute z-10 right-4 top-[7rem] bg-background border rounded-md shadow-md p-3 min-w-56">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">Save Note As</h4>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setShowFormatOptions(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Input
+                  placeholder="Note title"
+                  value={noteSaveTitle}
+                  onChange={(e) => setNoteSaveTitle(e.target.value)}
+                  className="mb-2"
+                />
+                <div className="space-y-1">
+                  {saveFormats.map((format) => (
+                    <Button
+                      key={format}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => handleSaveFormat(format)}
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      {format}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {showSavedAlert && (
+              <div className="fixed z-10 bottom-4 right-4 bg-green-50 border border-green-200 text-green-800 rounded-md p-3 flex items-start shadow-md dark:bg-green-900/30 dark:border-green-800 dark:text-green-300">
+                <Check className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                <div>
+                  <p className="font-medium">Note Saved Successfully</p>
+                  <p className="text-sm text-green-700 dark:text-green-400">Your note has been saved and can be accessed in your records.</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 h-6 w-6 p-0 text-green-700 dark:text-green-400"
+                  onClick={() => setShowSavedAlert(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             
             <TabsContent value="note" className="flex-1 mt-0">
               <div className="rounded-md border bg-background">
@@ -351,6 +523,26 @@ ${subjectiveContent}
                   className="w-full h-full border-0 focus-visible:ring-0 rounded-none font-mono text-sm resize-none"
                 />
               </div>
+              
+              {keyPhrases.length > 0 && (
+                <div className="mt-4 border rounded-md p-3 bg-blue-50 dark:bg-blue-900/20">
+                  <h4 className="text-sm font-medium flex items-center text-blue-800 dark:text-blue-300 mb-2">
+                    <Sparkles className="h-4 w-4 mr-1 text-blue-500" />
+                    Key Clinical Phrases Detected
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {keyPhrases.map((phrase, index) => (
+                      <div 
+                        key={index}
+                        className="bg-white text-blue-800 px-2 py-1 rounded-md text-xs flex items-center border border-blue-100 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300"
+                      >
+                        {phrase.text}
+                        <span className="ml-1 text-xs opacity-70">{Math.round(phrase.relevance * 100)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="codes" className="flex-1 mt-0">
@@ -466,6 +658,29 @@ ${subjectiveContent}
             
             <TabsContent value="transcript" className="flex-1 mt-0">
               <div className="rounded-md border bg-background p-4 flex flex-col h-full">
+                {showAccuracyMetrics && (
+                  <div className="mb-4 p-3 border rounded-md bg-green-50 dark:bg-green-900/20">
+                    <h4 className="text-sm font-medium flex items-center text-green-800 dark:text-green-300 mb-2">
+                      <Check className="h-4 w-4 mr-1 text-green-600" />
+                      Transcription Quality Metrics
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <div className="text-muted-foreground mb-1">Confidence</div>
+                        <div className="font-medium">{Math.round(MOCK_ACCURACY_METRICS.confidence * 100)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-1">Medical Terms</div>
+                        <div className="font-medium">{Math.round(MOCK_ACCURACY_METRICS.medicalTermsAccuracy * 100)}%</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground mb-1">Processing Time</div>
+                        <div className="font-medium">{MOCK_ACCURACY_METRICS.processingTime}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex-1 overflow-y-auto mb-4">
                   {transcript.length > 0 ? (
                     <div className="space-y-3">
@@ -478,7 +693,8 @@ ${subjectiveContent}
                           )}
                         >
                           <p className="text-sm">{segment}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center">
+                            <Clock className="h-3 w-3 mr-1 opacity-70" />
                             {new Date().toLocaleTimeString()}
                           </p>
                         </div>
@@ -494,11 +710,14 @@ ${subjectiveContent}
                               <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                 <Mic className="h-6 w-6 text-blue-500" />
                               </div>
-                              <div className="absolute inset-0 rounded-full bg-blue-400/20 animate-ping"></div>
+                              <div className={cn(
+                                "absolute inset-0 rounded-full",
+                                audioPaused ? "bg-gray-400/20" : "bg-blue-400/20 animate-ping"
+                              )}></div>
                             </div>
                           </div>
-                          <p>Listening...</p>
-                          <p className="text-sm mt-1">Speak clearly to capture encounter details</p>
+                          <p>{audioPaused ? "Recording paused" : "Listening..."}</p>
+                          <p className="text-sm mt-1">{audioPaused ? "Press resume to continue" : "Speak clearly to capture encounter details"}</p>
                         </div>
                       ) : (
                         <div className="text-center">
@@ -582,6 +801,28 @@ ${subjectiveContent}
               </div>
             </div>
           </div>
+          
+          {savedNotes.length > 0 && (
+            <div className="mb-4">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <BookmarkPlus className="mr-1 h-4 w-4" />
+                Saved Notes
+              </h3>
+              <div className="rounded-md border bg-background overflow-hidden">
+                <div className="max-h-[180px] overflow-y-auto">
+                  {savedNotes.map((note) => (
+                    <div key={note.id} className="p-2 border-b last:border-b-0 hover:bg-muted/20">
+                      <div className="font-medium text-sm">{note.title}</div>
+                      <div className="text-xs text-muted-foreground flex items-center mt-1">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {note.timestamp}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           
           <h3 className="font-semibold mb-2">Activity Log</h3>
           <div className="h-[calc(100%-12rem)] border rounded-md bg-background p-2 overflow-y-auto">
