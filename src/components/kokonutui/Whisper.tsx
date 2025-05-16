@@ -184,7 +184,7 @@ export default function Whisper() {
       `[${new Date().toLocaleTimeString()}] Whisper: Inbox loaded with ${messages.length} messages`,
       `[${new Date().toLocaleTimeString()}] Whisper: Found ${messages.filter(m => m.priority === "high").length} high priority messages`
     ]);
-  }, [messages.length]);
+  }, [messages]);
 
   // Handle message selection
   const handleSelectMessage = (message: InboxMessage) => {
